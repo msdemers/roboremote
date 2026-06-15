@@ -1,0 +1,26 @@
+services:
+  physics:
+    build: ./physics
+    environment:
+      PHYSICS_ADDR: "0.0.0.0:50052"
+    expose:
+      - "50052"
+
+  server:
+    build: ./server
+    environment:
+      PHYSICS_SIDECAR_ADDR: "physics:50052"
+      SERVER_ADDR: "0.0.0.0:50051"
+    ports:
+      - "50051:50051"
+    depends_on:
+      - physics
+
+  tui:
+    build: ./tui
+    environment:
+      SERVER_ADDR: "server:50051"
+    depends_on:
+      - server
+    stdin_open: true
+    tty: true
