@@ -11,7 +11,13 @@ build:
 	cd tui && go build ./...
 
 proto:
-	@echo "TODO: buf generate proto/"
+	buf lint proto/
+	buf generate
+	cd physics && uv run python -m grpc_tools.protoc \
+		-I../proto \
+		--python_out=../proto/gen/python \
+		--grpc_python_out=../proto/gen/python \
+		../proto/roboremote/arm/v1/arm.proto
 
 test:
 	cd server && go test ./...

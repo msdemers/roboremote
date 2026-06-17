@@ -16,21 +16,21 @@
 - [x] Draft PRD, PLAN, DECISIONS docs
 
 ## Phase 1: Repo Initialization
-- [ ] Initialize git repo: `roboremote`
-- [ ] Create directory skeleton
-- [ ] Initialize Go modules (server, tui)
-- [ ] Stub entry points (main.go, main.py)
-- [ ] Stub Dockerfiles (server, physics, tui)
-- [ ] Stub docker-compose.yml
-- [ ] Stub .env.example
-- [ ] Stub Makefile
-- [ ] Stub deploy/ with README and fly.toml.example files
-- [ ] Stub viz/ with README
-- [ ] Commit: "chore: initialize repo structure"
+- [x] Initialize git repo: `roboremote`
+- [x] Create directory skeleton
+- [x] Initialize Go modules (server, tui)
+- [x] Stub entry points (main.go, main.py)
+- [x] Stub Dockerfiles (server, physics, tui)
+- [x] Stub docker-compose.yml
+- [x] Stub .env.example
+- [x] Stub Makefile
+- [x] Stub deploy/ with README and fly.toml.example files
+- [x] Stub viz/ with README
+- [x] Commit: "chore: initialize repo structure"
 
 ## Phase 2: Proto and Code Generation
-- [ ] Write proto/arm.proto (drafted, needs final review)
-- [ ] Install and configure buf
+- [x] Write proto/arm.proto (drafted, needs final review)
+- [x] Install and configure buf
 - [ ] Write buf.gen.yaml
 - [ ] Generate Go stubs → proto/gen/go/
 - [ ] Generate Python stubs → proto/gen/python/

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package roboremote.arm.v1;
 
-option go_package = "github.com/YOURUSERNAME/roboremote/proto/gen/go/arm/v1";
+option go_package = "github.com/msdemers/roboremote/proto/gen/go/arm/v1";
 
 // ─── Core State ───────────────────────────────────────────────────────────────
 
@@ -91,13 +91,13 @@ message SensorNodeState {
 
 // ─── Streaming Messages ───────────────────────────────────────────────────────
 
-message SimStateStream {
+message SimStreamResponse {
   ArmState                 arm_state    = 1;
   repeated SensorNodeState sensor_nodes = 2;
   string active_control_mode            = 3;
 }
 
-message ClientCommand {
+message SimStreamRequest {
   oneof command {
     ControlCommand control          = 1;
     ExternalWrench wrench           = 2;
@@ -109,9 +109,13 @@ message ClientCommand {
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 service ArmSimService {
-  rpc SimStream(stream ClientCommand) returns (stream SimStateStream);
-  rpc GetArmState(GetArmStateRequest) returns (ArmState);
+  rpc SimStream(stream SimStreamRequest) returns (stream SimStreamResponse);
+  rpc GetArmState(GetArmStateRequest) returns (GetArmStateResponse);
   rpc SetControlMode(SetControlModeRequest) returns (SetControlModeResponse);
+}
+
+message GetArmStateResponse {
+  ArmState arm_state = 1;
 }
 
 message GetArmStateRequest {}
