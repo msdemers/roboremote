@@ -31,13 +31,13 @@
 ## Phase 2: Proto and Code Generation
 - [x] Write proto/arm.proto (drafted, needs final review)
 - [x] Install and configure buf
-- [ ] Write buf.gen.yaml
-- [ ] Generate Go stubs → proto/gen/go/
-- [ ] Generate Python stubs → proto/gen/python/
-- [ ] Commit: "feat: add arm.proto and generated stubs"
+- [x] Write buf.gen.yaml
+- [x] Generate Go stubs → proto/gen/go/
+- [x] Generate Python stubs → proto/gen/python/
+- [x] Commit: "feat: add arm.proto and generated stubs"
 
 ## Phase 3: Physics Sidecar
-- [ ] Download SO101 URDF/MJCF → physics/models/so101/
+- [x] Download SO101 URDF/MJCF → models/SO101/
 - [ ] Install Pinocchio, verify model loads
 - [ ] Implement FK wrapper
 - [ ] Implement gravity compensation policy

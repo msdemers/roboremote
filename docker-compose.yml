@@ -1,10 +1,17 @@
 services:
   physics:
     build: ./physics
+    volumes:
+      - ./models:/models:ro
     environment:
       PHYSICS_ADDR: "0.0.0.0:50052"
     expose:
       - "50052"
+  
+  viz:
+    build: ./viz
+    volumes:
+      - ./models:/models:ro
 
   server:
     build: ./server
