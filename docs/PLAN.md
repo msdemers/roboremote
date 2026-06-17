@@ -1,0 +1,89 @@
+# roboremote — Project Plan
+
+## Status Legend
+- [ ] Not started
+- [~] In progress  
+- [x] Complete
+
+## Phase 0: Design (Complete)
+- [x] Define project concept and goals
+- [x] Choose architecture: gRPC, physics sidecar pattern, multi-client
+- [x] Choose robot model: SO-ARM100 / SO101
+- [x] Choose physics engine: Pinocchio v1, MuJoCo fast follow
+- [x] Choose hosting strategy: Docker Compose v1, Fly.io v2
+- [x] Design repo structure
+- [x] Sketch proto file: `proto/arm.proto`
+- [x] Draft PRD, PLAN, DECISIONS docs
+
+## Phase 1: Repo Initialization
+- [ ] Initialize git repo: `roboremote`
+- [ ] Create directory skeleton
+- [ ] Initialize Go modules (server, tui)
+- [ ] Stub entry points (main.go, main.py)
+- [ ] Stub Dockerfiles (server, physics, tui)
+- [ ] Stub docker-compose.yml
+- [ ] Stub .env.example
+- [ ] Stub Makefile
+- [ ] Stub deploy/ with README and fly.toml.example files
+- [ ] Stub viz/ with README
+- [ ] Commit: "chore: initialize repo structure"
+
+## Phase 2: Proto and Code Generation
+- [ ] Write proto/arm.proto (drafted, needs final review)
+- [ ] Install and configure buf
+- [ ] Write buf.gen.yaml
+- [ ] Generate Go stubs → proto/gen/go/
+- [ ] Generate Python stubs → proto/gen/python/
+- [ ] Commit: "feat: add arm.proto and generated stubs"
+
+## Phase 3: Physics Sidecar
+- [ ] Download SO101 URDF/MJCF → physics/models/so101/
+- [ ] Install Pinocchio, verify model loads
+- [ ] Implement FK wrapper
+- [ ] Implement gravity compensation policy
+- [ ] Implement joint PD policy
+- [ ] Implement fixed-step integrator
+- [ ] Implement gRPC server (physics side)
+- [ ] Containerize and verify headless
+- [ ] Commit: "feat: physics sidecar v1"
+
+## Phase 4: Sim Server
+- [ ] Implement gRPC server skeleton
+- [ ] Implement simulation loop goroutine
+- [ ] Implement state broadcaster (fan-out to N clients)
+- [ ] Implement SimStream RPC handler
+- [ ] Implement GetArmState RPC handler
+- [ ] Implement SetControlMode RPC handler
+- [ ] Implement ExternalWrench ingestion
+- [ ] Implement SensorNode world-pose computation
+- [ ] Containerize and verify
+- [ ] Commit: "feat: sim server v1"
+
+## Phase 5: TUI Client
+- [ ] Initialize Bubble Tea app structure
+- [ ] Implement gRPC stream consumer
+- [ ] Implement connection status panel
+- [ ] Implement joint state monitor panel
+- [ ] Implement control input monitor panel
+- [ ] Implement sensor node manager panel
+- [ ] Implement control policy switcher
+- [ ] Containerize with TTY support
+- [ ] Commit: "feat: tui client v1"
+
+## Phase 6: Integration and Polish
+- [ ] Full stack smoke test via docker compose up
+- [ ] Write README.md (purpose, quickstart, architecture diagram)
+- [ ] Record demo (gif or video)
+- [ ] Commit: "docs: readme and demo"
+
+## Phase 7: V2 Deployment (DevOps capstone or fast follow)
+- [ ] Write fly.toml for server and physics apps
+- [ ] Configure fly secrets for environment variables
+- [ ] Set up GitHub Actions CI/CD
+- [ ] Deploy to Fly.io, verify private network gRPC
+- [ ] Update README with public demo URL
+
+## Open TODOs
+- [ ] Choose 3D visualizer language/framework (Three.js vs MeshCat)
+- [ ] Design 3D visualizer v1 (render + tug interaction)
+- [ ] Evaluate AWS vs CoreWeave for future GPU/Isaac work
