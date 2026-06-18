@@ -37,8 +37,9 @@
 - [x] Commit: "feat: add arm.proto and generated stubs"
 
 ## Phase 3: Physics Sidecar
-- [x] Download SO101 URDF/MJCF → models/SO101/
-- [ ] Install Pinocchio, verify model loads
+- [x] Download SO101 URDF/MJCF → models/so101/
+- [ ] uv init and dependency setup
+- [ ] Install Pinocchio or MuJoCo, verify model loads
 - [ ] Implement FK wrapper
 - [ ] Implement gravity compensation policy
 - [ ] Implement joint PD policy
@@ -54,7 +55,6 @@
 - [ ] Implement SimStream RPC handler
 - [ ] Implement GetArmState RPC handler
 - [ ] Implement SetControlMode RPC handler
-- [ ] Implement ExternalWrench ingestion
 - [ ] Implement SensorNode world-pose computation
 - [ ] Containerize and verify
 - [ ] Commit: "feat: sim server v1"
@@ -70,13 +70,19 @@
 - [ ] Containerize with TTY support
 - [ ] Commit: "feat: tui client v1"
 
-## Phase 6: Integration and Polish
+## Phase 6: Dev Visualizer (Rerun)
+- [ ] Install Rerun Python SDK in physics environment
+- [ ] Write Rerun bridge script (consumes gRPC stream, logs to Rerun viewer)
+- [ ] Verify live arm state renders correctly
+- [ ] Commit: "feat: add rerun dev visualizer bridge"
+
+## Phase 7: Integration and Polish
 - [ ] Full stack smoke test via docker compose up
 - [ ] Write README.md (purpose, quickstart, architecture diagram)
 - [ ] Record demo (gif or video)
-- [ ] Commit: "docs: readme and demo"
+- [ ] Commit: "docs: readme, architecture diagram, and demo"
 
-## Phase 7: V2 Deployment (DevOps capstone or fast follow)
+## Phase 8: V2 Deployment (DevOps capstone or fast follow)
 - [ ] Write fly.toml for server and physics apps
 - [ ] Configure fly secrets for environment variables
 - [ ] Set up GitHub Actions CI/CD
@@ -84,6 +90,5 @@
 - [ ] Update README with public demo URL
 
 ## Open TODOs
-- [ ] Choose 3D visualizer language/framework (Three.js vs MeshCat)
-- [ ] Design 3D visualizer v1 (render + tug interaction)
-- [ ] Evaluate AWS vs CoreWeave for future GPU/Isaac work
+- [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
+- [ ] V2: Evaluate AWS vs CoreWeave for GPU/Isaac work
