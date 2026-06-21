@@ -38,8 +38,9 @@
 
 ## Phase 3: Physics Sidecar
 - [x] Download SO101 URDF/MJCF → models/so101/
-- [ ] uv init and dependency setup
-- [ ] Install Pinocchio or MuJoCo, verify model loads
+- [x] uv init and dependency setup
+- [x] Install Pinocchio
+- [x] Test simple script to verify model loads and meets so101 expectations
 - [ ] Implement FK wrapper
 - [ ] Implement gravity compensation policy
 - [ ] Implement joint PD policy
