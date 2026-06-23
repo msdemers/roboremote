@@ -20,4 +20,5 @@ def end_effector_pose(model: pin.Model, data: pin.Data, q: np.ndarray):
         )
     frameID = model.getFrameId(EE_FRAME)
     pin.framesForwardKinematics(model, data, q)
+    pin.updateFramePlacements(model, data)
     return data.oMf[frameID]
