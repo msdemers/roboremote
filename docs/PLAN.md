@@ -93,3 +93,6 @@
 ## Open TODOs
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
 - [ ] V2: Evaluate AWS vs CoreWeave for GPU/Isaac work
+- [ ] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
+      Isaac, Apple ARKit/RealityKit, Unity) to inform proto `Pose` format; keep it
+      vendor-neutral, not locked to Pinocchio. Only the SE3→Pose helper changes.
