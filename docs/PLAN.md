@@ -45,6 +45,8 @@
 - [ ] Implement gravity compensation policy
 - [ ] Implement joint PD policy
 - [ ] Implement fixed-step integrator
+- [ ] Test: gravity comp holds arbitrary config at rest (zero-g equilibrium) —
+      integration test, depends on integrator; lives in test_controllers.py
 - [ ] Implement gRPC server (physics side)
 - [ ] Containerize and verify headless
 - [ ] Commit: "feat: physics sidecar v1"
