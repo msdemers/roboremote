@@ -12,10 +12,29 @@ for i, name in enumerate(model.names):
 
 data = model.createData()
 
-q = pin.randomConfiguration(model)
+# q = pin.randomConfiguration(model)
+q = pin.neutral(model)
 print(f"q: {q.T}")
 
 pin.forwardKinematics(model, data, q)
+pin.updateFramePlacements(model, data)
 
+print("====\njoints oMi[i].rotation\n====")
+for i, name in enumerate(model.names):
+    print(name, "\n", data.oMi[i].rotation) # joint orientation in world
+
+print("====\njoint origins wrt parent (model.jointPlacements[i]\n====")
+for i, name in enumerate(model.names):
+    print(name, "\n", model.jointPlacements[i]) # fixed joint origins in their parents
+
+print("====\n frame placements in parent joints (model.frames[i].placement)\n====")
+for f in model.frames:
+      print(f.name, "\n", f.placement)   # fixed offset of each frame vs its parent joint
+
+print("joint positions in global frame:")
 for name, oMi in zip(model.names, data.oMi):
     print("{:<24} : {: .2f} {: .2f} {: .2f}".format(name, *oMi.translation.T.flat))
+
+print("frame positions in global frame:")
+for name, oMf in zip(model.names, data.oMf):
+    print("{:<24} : {: .2f} {: .2f} {: .2f}".format(name, *oMf.translation.T.flat))

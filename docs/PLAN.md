@@ -41,7 +41,7 @@
 - [x] uv init and dependency setup
 - [x] Install Pinocchio
 - [x] Test simple script to verify model loads and meets so101 expectations
-- [ ] Implement FK wrapper
+- [x] Implement FK wrapper
 - [ ] Implement gravity compensation policy
 - [ ] Implement joint PD policy
 - [ ] Implement fixed-step integrator

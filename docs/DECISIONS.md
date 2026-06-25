@@ -169,3 +169,35 @@ communicating over Fly.io's private WireGuard network.
 - V2 deployment stubs committed to `deploy/` directory with documented
   `fly.toml.example` files per service
 - V2 deployment targeted as DevOps capstone project or immediate fast follow
+
+---
+
+## ADR-007: Physics Sidecar Owns the Integration Clock
+
+**Status:** Accepted
+
+**Context:**
+ADR-002 established the physics sidecar pattern but left the sim loop's
+ownership ambiguous: PLAN Phase 3 lists a "fixed-step integrator" in Python
+while Phase 4 lists a "simulation loop goroutine" in Go. Both cannot own the
+timestep. If the Go server ticks the clock and calls Python per-step over
+gRPC, a network hop sits inside the integration loop — at hundreds of Hz the
+sim rate becomes hostage to RPC jitter, undercutting ADR-002's
+"sub-millisecond, acceptable" assumption.
+
+**Decision:**
+The Python physics sidecar owns the integration clock. It runs the fixed-step
+integrator and streams resulting state outward. The Go sim server is a pure
+fan-out relay: it subscribes to sidecar state, broadcasts to N clients, and
+routes inbound commands back to the sidecar. It does not advance sim time.
+
+**Consequences:**
+- No network hop inside the integration loop; sim rate is set by the sidecar,
+  not by RPC timing.
+- Go server stays a stateless relay — simpler, easier to scale fan-out.
+- The Phase 4 "simulation loop goroutine" is really a stream pump, not an
+  integrator; PLAN wording should be read in that light.
+- Determinism and timestep discipline live in one place (Python), aligning
+  with the developer's numerics background.
+- The sidecar must drive its own loop independent of client connections
+  (the sim advances whether or not anyone is watching).
