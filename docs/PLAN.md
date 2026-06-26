@@ -98,3 +98,9 @@
 - [ ] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
       Isaac, Apple ARKit/RealityKit, Unity) to inform proto `Pose` format; keep it
       vendor-neutral, not locked to Pinocchio. Only the SE3→Pose helper changes.
+- [ ] Integrator accuracy/stability: semi-implicit Euler is first-order and only
+      marginally stable at the 1 ms control period for undamped free-swing dynamics
+      (energy band ~7%, destabilizes over seconds). Fine for controlled motion
+      (gravity comp / PD add effective damping). Revisit a higher-order or substepped
+      integrator (RK4, semi-implicit substepping) if aggressive/long free-running sim
+      is needed.
