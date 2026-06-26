@@ -5,8 +5,6 @@ import numpy as np
 import pinocchio as pin
 from . import forward
 
-TEST_SO101_MODEL = "models/so101/so101_new_calib.urdf"
-
 R_REF_QZERO = np.array([
       [ 8.66502e-06, -1.03004e-05, 1.0        ],
       [ 0.0486629,    0.998815,    9.8665e-06 ],
@@ -15,9 +13,8 @@ R_REF_QZERO = np.array([
 P_REF_QZERO = np.array([0.391361, -9.21206e-06, 0.22647])
 REF_QZERO = pin.SE3(R_REF_QZERO, P_REF_QZERO)
 
-def test_home_config_matches_frozen_golden_ref():
-    urdf_path = pathlib.Path(__file__).parents[2] / TEST_SO101_MODEL
-    model = pin.buildModelFromUrdf(urdf_path)
+def test_home_config_matches_frozen_golden_ref(so101_model):
+    model = so101_model
     
     data = model.createData()
     q = pin.neutral(model)
