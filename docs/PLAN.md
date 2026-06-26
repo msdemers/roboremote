@@ -42,23 +42,30 @@
 - [x] Install Pinocchio
 - [x] Test simple script to verify model loads and meets so101 expectations
 - [x] Implement FK wrapper
-- [ ] Implement gravity compensation policy
-- [ ] Implement joint PD policy
-- [ ] Implement fixed-step integrator
-- [ ] Test: gravity comp holds arbitrary config at rest (zero-g equilibrium) —
-      integration test, depends on integrator; lives in test_controllers.py
+- [x] Implement gravity compensation policy
+- [x] Implement fixed-step integrator (semi-implicit Euler; convergence-tested)
+- [x] Test: gravity comp holds arbitrary config at rest (zero-g equilibrium) —
+      static-equilibrium test in sim/test_integrator.py
+- [ ] Implement control policies (task-space EE PD, compensated PD) — composable
+      torque terms summed into behaviors (see ADR pending)
+- [ ] Implement sim loop (Simulator: owns model/data/state; ticks integrator +
+      active policy at fixed rate; drives its own clock per ADR-007)
+- [ ] Implement SensorNode state computation — physics-side; world pose (FK) and
+      spatial velocity (getFrameVelocity); needs proto field for velocity sensors
 - [ ] Implement gRPC server (physics side)
 - [ ] Containerize and verify headless
 - [ ] Commit: "feat: physics sidecar v1"
 
 ## Phase 4: Sim Server
 - [ ] Implement gRPC server skeleton
-- [ ] Implement simulation loop goroutine
+- [ ] Implement state relay pump (subscribe to sidecar stream; per ADR-007 Go is a
+      pure relay, not an integrator)
 - [ ] Implement state broadcaster (fan-out to N clients)
 - [ ] Implement SimStream RPC handler
 - [ ] Implement GetArmState RPC handler
 - [ ] Implement SetControlMode RPC handler
-- [ ] Implement SensorNode world-pose computation
+- [ ] Relay SensorNode state from sidecar (fan-out only; no kinematics in Go —
+      computation is physics-side, see Phase 3)
 - [ ] Containerize and verify
 - [ ] Commit: "feat: sim server v1"
 

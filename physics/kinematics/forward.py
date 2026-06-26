@@ -3,7 +3,7 @@ import pinocchio as pin
 
 EE_FRAME = "gripper_frame_link"
 
-def end_effector_pose(model: pin.Model, data: pin.Data, q: np.ndarray):
+def end_effector_pose(model: pin.Model, data: pin.Data, q: np.ndarray) -> pin.SE3:
     """Forward kinematics: joint configuration → end-effector pose in the world frame.
 
     Args:
@@ -20,5 +20,4 @@ def end_effector_pose(model: pin.Model, data: pin.Data, q: np.ndarray):
         )
     frameID = model.getFrameId(EE_FRAME)
     pin.framesForwardKinematics(model, data, q)
-    pin.updateFramePlacements(model, data)
-    return data.oMf[frameID]
+    return data.oMf[frameID].copy()
