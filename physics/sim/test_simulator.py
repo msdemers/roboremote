@@ -3,6 +3,7 @@ from control import controllers
 from kinematics import forward
 import numpy as np
 import pinocchio as pin
+import threading, time
 
 def test_clock(so101_model):
     model = so101_model
@@ -68,3 +69,35 @@ def test_static_under_grav_comp_policy(so101_model):
     ee_pose_last = forward.end_effector_pose(model, sim.data, sim.q)
 
     assert np.allclose(ee_pose_last.homogeneous, ee_pose_0.homogeneous, 0.0, 1e-9), "final pose should closely match initial pose under static gravity comp policy"
+
+def test_run_stops(so101_model):
+    model = so101_model
+    dt = 0.001
+
+    sim = simulator.Simulator(model, controllers.gravity_compensation_policy, dt)
+
+    thread = threading.Thread(target=sim.run, daemon=True)
+    thread.start()
+    time.sleep(0.05)
+    assert sim.t > 0, "sim time did not advance"
+
+    sim.stop()
+    thread.join(timeout=1.0) # wait an extra second to allow plenty of time for sim to stop
+    assert not thread.is_alive()
+
+def test_run_advances_realtime(so101_model):
+    model = so101_model
+    dt = 0.001
+
+    sim = simulator.Simulator(model, controllers.gravity_compensation_policy, dt)
+
+    t_start = time.perf_counter()
+    thread = threading.Thread(target=sim.run, daemon=True)
+    thread.start()
+    time.sleep(0.1)
+    elapsed = time.perf_counter() - t_start
+    sim.stop()
+    thread.join(timeout=1.0)
+    assert not thread.is_alive(), "sim thread should have stopped by now"
+    assert np.allclose(sim.t, elapsed, rtol=0.2, atol=0.0), "sim time diverged from wall time"
+
