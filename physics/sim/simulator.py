@@ -11,7 +11,7 @@ class SimSnapshot:
     v: np.ndarray
     tau: np.ndarray
 
-    def _eq__(self, other):
+    def __eq__(self, other):
         if not isinstance(other, SimSnapshot):
             return NotImplemented
         return (
