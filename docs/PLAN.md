@@ -46,10 +46,11 @@
 - [x] Implement fixed-step integrator (semi-implicit Euler; convergence-tested)
 - [x] Test: gravity comp holds arbitrary config at rest (zero-g equilibrium) —
       static-equilibrium test in sim/test_integrator.py
+- [x] Implement sim loop (Simulator owns model/data/state; tick() advances
+      integrator + injected policy; run()/stop() paced via threading.Event; void
+      tick + get_snapshot() producer/consumer split; drives own clock per ADR-007)
 - [ ] Implement control policies (task-space EE PD, compensated PD) — composable
       torque terms summed into behaviors (see ADR pending)
-- [ ] Implement sim loop (Simulator: owns model/data/state; ticks integrator +
-      active policy at fixed rate; drives its own clock per ADR-007)
 - [ ] Implement SensorNode state computation — physics-side; world pose (FK) and
       spatial velocity (getFrameVelocity); needs proto field for velocity sensors
 - [ ] Implement gRPC server (physics side)
