@@ -343,3 +343,96 @@ conversion in the sidecar's `SE3→CartesianPose` helper.
   lives solely in the `SE3→CartesianPose` helper at the engine boundary, never
   on the wire.
 - Resolves the PLAN open TODO on quaternion conventions.
+
+---
+
+## ADR-012: V1 Interaction Scope — Sensor Nodes Deferred, Last-Writer-Wins
+
+**Status:** Accepted
+
+**Context:**
+User-placeable sensor nodes (position/attitude/velocity probes) were the
+largest remaining source of v1 complexity: shared mutable cross-client state,
+add/remove lifecycle RPCs, and physics-side world-pose/velocity computation per
+node. V1's thesis — real-time gRPC state streaming with multi-client fan-out
+and command routing — does not depend on them.
+
+**Decision:**
+Defer user-configurable sensor nodes to V2. V1 client interaction is: switch
+control policy, set a joint-space (`Coordinates`) target, set a task-space
+(`CartesianPose`) target, snap to a reference config (`ResetConfiguration`),
+and observe `q`/`v`/`tau`/EE state. Mode and target are shared sim state with
+**last-writer-wins** semantics — no per-client ownership or locking.
+
+**Consequences:**
+- Proto drops `SensorNode`, `SensorNodeState`, the `add_sensor`/`remove_sensor`
+  `oneof` arms, and `sensor_nodes` from the stream. (`Wrench`/`ExternalWrench`
+  tugging already V2 per ADR-005.)
+- Client interface = `Subscribe` (state) + unary `SetControlMode`,
+  `SetTarget`, `ResetConfiguration` (target RPCs collapsed per ADR-013).
+- No cross-client mutable-collection concurrency in v1; conflicting commands
+  resolve last-writer-wins.
+- PRD success criteria and PLAN Phases 3–5 updated to remove sensor work.
+
+---
+
+## ADR-013: Control Modes and Targeting
+
+**Status:** Accepted
+
+**Context:**
+V1 has five control policies, each admitting exactly one target kind (none /
+joint / Cartesian). The raw-vs-compensated split means a target cannot
+disambiguate the mode (a `CartesianPose` target fits both Task-PD-Raw and
+Task-PD-Compensated).
+
+**Decision:**
+- `ControlMode` is a flat enum of five (+ `UNSPECIFIED`): `GRAVITY_COMP` (no
+  target), `JOINT_PD_RAW`, `JOINT_PD_COMPENSATED` (both `Coordinates`),
+  `TASK_PD_RAW`, `TASK_PD_COMPENSATED` (both `CartesianPose`).
+- Mode is always set explicitly via `SetControlMode`; never inferred from a
+  target.
+- A single `SetTarget(oneof { Coordinates joint; CartesianPose cartesian })`
+  replaces separate joint/Cartesian target RPCs. The server rejects a target
+  whose `oneof` arm doesn't match the active mode.
+- On mode entry the setpoint defaults to **current state** (joint target =
+  current `q`; Cartesian target = current EE pose) — bumpless transfer, no
+  commanded jump. `SetTarget` overrides afterward.
+
+**Consequences:**
+- Command roster: `Subscribe` + unary `SetControlMode`, `SetTarget`,
+  `ResetConfiguration`.
+- Invalid mode/target combinations resolve at a single rejection point
+  (`SetTarget` vs active mode).
+- Mode switches are always safe regardless of client timing.
+- Supersedes the `SetJointTarget`/`SetCartesianTarget` split in ADR-012.
+
+---
+
+## ADR-014: Sidecar↔Server Shares One Service; Server Proxies
+
+**Status:** Accepted
+
+**Context:**
+Two gRPC hops exist: client↔server and server↔sidecar. Command payloads are
+identical across them (ADR-007 makes the server a pure relay), so the question
+is one shared service definition vs two sharing message types.
+
+**Decision:**
+One shared service (`ArmSimService`), shared messages across both hops. The
+**sidecar is the authoritative implementor** — it owns `q`/mode/controllers,
+validates, and originates acks. The server implements the same interface:
+- **Unary commands** (`SetControlMode`, `SetTarget`, `ResetConfiguration`):
+  verbatim forward to the sidecar; ack returned unchanged.
+- **State `Subscribe`:** *not* a transparent forward. The server holds a single
+  full-rate (120 Hz) upstream subscription to the sidecar and fans out,
+  decimating per client via `StreamRate` (ADR-009). The server requests 120 Hz
+  upstream; client-rate selection is a server-side concern.
+
+**Consequences:**
+- The relay is a trivial forwarder for the three command RPCs.
+- The only non-trivial relay logic is state fan-out/decimation — inherent, not
+  avoidable.
+- Validation, authority, and acks live solely in the sidecar (ADR-007).
+- One service def + shared messages = no payload duplication; a client sees an
+  identical interface whether it talks to the sidecar or the server.

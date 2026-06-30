@@ -14,6 +14,7 @@ roboremote is an open source robotic arm simulation platform with real-time remo
 - Interactive 3D visualizer with tugging (V2)
 - Real hardware integration (future)
 - Model Switcher with multiple, popular robot models (future)
+- User-placeable sensor nodes (position/attitude/velocity) (v2)
 
 ## Target Users
 - Robotics/ML researchers wanting a lightweight sim sandbox
@@ -29,7 +30,7 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 ## V1 Deliverables
 1. Physics sidecar (Python, Pinocchio or MuJoCo) — dynamics, FK, control policies
 2. Sim server (Go, gRPC) — state distribution, client fan-out, command routing
-3. TUI client (Go, Bubble Tea) — monitor connection, state, control, sensor nodes
+3. TUI client (Go, Bubble Tea) — monitor connection, state, control
 4. Dev-only Visualizer (Python, Rerun) — passive 3D rendering for development and debugging; not included in end-user Docker Compose stack
 5. Docker Compose orchestration — single `docker compose up` runs full stack
 
@@ -42,5 +43,5 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 - `docker compose up` starts all three services cleanly
 - TUI displays live joint state updating in real time
 - User can switch control policies from TUI
-- User can place a sensor node and see its world-frame pose update live
+- User can set joint-space and task-space (Cartesian) targets from the TUI
 - Dev visualizer (Rerun) renders live arm state for development validation

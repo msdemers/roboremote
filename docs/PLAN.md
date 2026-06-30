@@ -51,8 +51,6 @@
       tick + get_snapshot() producer/consumer split; drives own clock per ADR-007)
 - [ ] Implement control policies (task-space EE PD, compensated PD) — composable
       torque terms summed into behaviors (see ADR pending)
-- [ ] Implement SensorNode state computation — physics-side; world pose (FK) and
-      spatial velocity (getFrameVelocity); needs proto field for velocity sensors
 - [ ] Implement gRPC server (physics side)
 - [ ] Containerize and verify headless
 - [ ] Commit: "feat: physics sidecar v1"
@@ -62,11 +60,9 @@
 - [ ] Implement state relay pump (subscribe to sidecar stream; per ADR-007 Go is a
       pure relay, not an integrator)
 - [ ] Implement state broadcaster (fan-out to N clients)
-- [ ] Implement SimStream RPC handler
-- [ ] Implement GetArmState RPC handler
-- [ ] Implement SetControlMode RPC handler
-- [ ] Relay SensorNode state from sidecar (fan-out only; no kinematics in Go —
-      computation is physics-side, see Phase 3)
+- [ ] Implement Subscribe RPC handler (server-stream; descriptor-first, ADR-010)
+- [ ] Implement unary command handlers: SetControlMode, SetTarget,
+      ResetConfiguration (ADR-008, ADR-013)
 - [ ] Containerize and verify
 - [ ] Commit: "feat: sim server v1"
 
@@ -76,7 +72,6 @@
 - [ ] Implement connection status panel
 - [ ] Implement joint state monitor panel
 - [ ] Implement control input monitor panel
-- [ ] Implement sensor node manager panel
 - [ ] Implement control policy switcher
 - [ ] Containerize with TTY support
 - [ ] Commit: "feat: tui client v1"
@@ -101,6 +96,8 @@
 - [ ] Update README with public demo URL
 
 ## Open TODOs
+- [ ] V2: User-placeable sensor nodes (position/attitude/velocity), physics-side
+      world pose + spatial velocity, add/remove lifecycle (deferred per ADR-012)
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
 - [ ] V2: Evaluate AWS vs CoreWeave for GPU/Isaac work
 - [x] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
