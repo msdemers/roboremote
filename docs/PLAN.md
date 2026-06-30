@@ -103,9 +103,10 @@
 ## Open TODOs
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
 - [ ] V2: Evaluate AWS vs CoreWeave for GPU/Isaac work
-- [ ] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
-      Isaac, Apple ARKit/RealityKit, Unity) to inform proto `Pose` format; keep it
-      vendor-neutral, not locked to Pinocchio. Only the SE3→Pose helper changes.
+- [x] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
+      Isaac, Apple ARKit/RealityKit, Unity) to inform proto `CartesianPose` format.
+      Resolved → ADR-011: scalar-last `{x, y, z, w}` (industry majority; matches
+      Eigen/Pinocchio coeff order). Only the SE3→CartesianPose helper converts.
 - [ ] Integrator accuracy/stability: semi-implicit Euler is first-order and only
       marginally stable at the 1 ms control period for undamped free-swing dynamics
       (energy band ~7%, destabilizes over seconds). Fine for controlled motion

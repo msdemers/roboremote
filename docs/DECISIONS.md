@@ -201,3 +201,145 @@ routes inbound commands back to the sidecar. It does not advance sim time.
   with the developer's numerics background.
 - The sidecar must drive its own loop independent of client connections
   (the sim advances whether or not anyone is watching).
+
+---
+
+## ADR-008: Client Transport — Server-Streaming State + Unary Commands
+
+**Status:** Accepted
+
+**Context:**
+The original proto sketched a single bidirectional `ArmSimService.SimStream`
+carrying commands up and state down, alongside redundant unary `GetArmState`
+and `SetControlMode` RPCs. The bidi mashup conflated three distinct flows
+(state out, commands in, sensor lifecycle) and gave commands no
+acknowledgement — a command vanished into the stream, and gRPC status codes
+only fire on stream teardown, not per-message. It also forced one contract
+across two asymmetric hops (sidecar↔server vs server↔client).
+
+**Decision:**
+Decompose the client-facing interface into two RPC shapes:
+- One **server-streaming** RPC for state:
+  `Subscribe(SubscribeRequest) returns (stream StreamFrame)`.
+- A set of **unary** command RPCs, each returning a response message carrying
+  accept/reject status. Locked so far: `ResetConfiguration` (snap),
+  `SetJointTarget` (servo), `SetControlMode`. Remaining command roster
+  (Cartesian target, sensor add/remove, control-mode representation, sensor
+  ownership) is still being designed and will be recorded separately.
+
+The bidirectional `SimStream` is removed.
+
+**Consequences:**
+- Unary commands restore per-command ack/nack semantics for free (each has a
+  response message).
+- State is a clean one→many server stream; per-client rate selection lives in
+  the request (see ADR-009).
+- Simpler reconnection and error handling than bidi.
+- The command set extends without touching the state stream.
+- Consistent with ADR-007: the Go server stays a pure relay.
+
+---
+
+## ADR-009: Sidecar Publish Cadence and Per-Client Decimation
+
+**Status:** Accepted (extends ADR-007)
+
+**Context:**
+ADR-007 placed the integration clock in the sidecar but left open the rate at
+which state reaches clients and where rate decoupling lives. A server-pull
+model reintroduces RPC timing into cadence; locking clients to the integration
+tick (≈1 kHz) is wasteful and unrenderable.
+
+**Decision:**
+The sidecar **pushes** state outward at a fixed **120 Hz** publish rate,
+decoupled from its integration tick via a latest-snapshot slot (integrate
+fast, publish at 120 Hz). The Go server is a pure fan-out relay and
+**decimates per subscriber** to a client-selected rate from a fixed menu
+`{120, 60, 30} Hz` (decimation factor N = 1/2/4). Rate is selected via a
+`StreamRate` enum in the `Subscribe` request.
+
+**Consequences:**
+- No network hop inside the integration loop (preserves ADR-007); cadence is
+  owned by the sidecar.
+- Decimation only drops frames, never invents them: client rate ≤ publish
+  rate, and only integer divisors are offered — no temporal aliasing/beating.
+- The `StreamRate` enum makes invalid rates unrepresentable by construction.
+- Latest-value-wins semantics: a slow or stalled consumer never accrues a
+  backlog.
+- 120 Hz anchors to the 60 Hz monitor family for the future visualizer; the
+  TUI needs only 30/60.
+
+---
+
+## ADR-010: On-the-Wire State Representation
+
+**Status:** Accepted
+
+**Context:**
+The original proto modeled state as `repeated JointState{name, position,
+velocity, effort}`, re-transmitting joint-name strings for every joint on
+every frame and forcing clients to string-match to align state. This
+mismatches how dynamics systems represent state (generalized vectors) and how
+the sidecar's `SimSnapshot{t, q, v, tau}` is already shaped.
+
+**Decision:**
+- `ArmState` carries **generalized vectors**: `Coordinates q`, `Velocities v`,
+  `Actuation tau`, plus `CartesianPose end_effector` (FK of the
+  `gripper_frame_link` frame), `sim_time`, and `ArmStatus`. The gripper is a
+  DOF *inside* `q`, not a separate field; the end-effector is a kinematic
+  *frame* whose pose is computed by FK, not a coordinate.
+- `Coordinates` / `Velocities` / `Actuation` are **shared message types**,
+  reused by command setpoints (e.g. `SetJointTarget`, feedforward torque).
+- The EE pose type is named **`CartesianPose`** (position + quaternion) — not
+  `Pose` (ambiguous with configuration `q`) nor `Transform` (implies a
+  homogeneous matrix).
+- Frames are **opaque positional vectors**; their meaning is supplied once by
+  an **`ArmDescriptor` delivered as the first message of the `Subscribe`
+  stream** (`oneof StreamFrame { descriptor | state }`) — consistency by
+  construction, re-delivered on every reconnect. The descriptor carries joint
+  names in model order, per-joint `q`/`v` start index and dimension (from
+  Pinocchio's `idx_q`/`idx_v`/`nq`/`nv`), total `nq`/`nv`, limits, units, the
+  EE frame name, and `model_name` + `model_version` (hash).
+- **Model geometry/meshes are NOT shipped over gRPC.** Clients load them
+  out-of-band (volume mount per ADR-004) and verify against
+  `model_name`/`model_version`. Asset distribution for genuinely remote
+  clients is deferred to V2.
+
+**Consequences:**
+- Wire shape mirrors the sidecar's snapshot and Pinocchio's `nq`/`nv`; no
+  per-frame strings, alignment is positional.
+- Shared vector types keep state and command messages symmetric.
+- Descriptor-first guarantees a client can never decode a frame without first
+  holding the key; the Go TUI (no URDF parser) depends on it entirely.
+- The authoritative `q`-vector layout comes from the sidecar, so client
+  correctness never rests on "did you parse the URDF the same way I did."
+- Separates three concerns that "the model" had been conflating:
+  state-decoding metadata, kinematic model, and visual geometry.
+- Rigor via verifiable consistency (`model_name`/hash), not by streaming bytes
+  on the hot path.
+
+---
+
+## ADR-011: Quaternion Ordering — Scalar-Last (x, y, z, w)
+
+**Status:** Accepted
+
+**Context:**
+`CartesianPose` carries orientation as a quaternion; the wire order must be
+fixed. The industry is split: Pinocchio/Eigen/ROS tf2 use scalar-last
+`{x, y, z, w}`; MuJoCo and NVIDIA Isaac use scalar-first `{w, x, y, z}`. The
+original `Pose` sketch listed `qw` first.
+
+**Decision:**
+Use **scalar-last `{x, y, z, w}`**, Hamilton convention (right-handed). A
+survey of robotics/sim tooling found scalar-last to be the majority; it also
+matches Pinocchio/Eigen's own internal coefficient order, minimizing
+conversion in the sidecar's `SE3→CartesianPose` helper.
+
+**Consequences:**
+- The sidecar's `SE3→CartesianPose` helper is a near-direct copy of the Eigen
+  quaternion coefficients.
+- The MuJoCo fast-follow (ADR-003) uses scalar-first `wxyz`; that conversion
+  lives solely in the `SE3→CartesianPose` helper at the engine boundary, never
+  on the wire.
+- Resolves the PLAN open TODO on quaternion conventions.
