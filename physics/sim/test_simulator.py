@@ -4,6 +4,8 @@ from kinematics import forward
 import numpy as np
 import pinocchio as pin
 import threading, time
+from dataclasses import FrozenInstanceError
+import pytest
 
 def test_clock(so101_model):
     model = so101_model
@@ -101,3 +103,39 @@ def test_run_advances_realtime(so101_model):
     assert not thread.is_alive(), "sim thread should have stopped by now"
     assert np.allclose(sim.t, elapsed, rtol=0.2, atol=0.0), "sim time diverged from wall time"
 
+def test_snapshot_returns_valid_data(so101_model):
+    model = so101_model
+    dt = 0.001
+    n_steps = 100
+
+    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+
+    start_snapshot = sim.get_snapshot()
+
+    for _ in range(n_steps):
+        sim.tick()
+
+    end_snapshot = sim.get_snapshot()
+    
+    assert end_snapshot.t == sim.t and np.array_equal(end_snapshot.q, sim.q) and np.array_equal(end_snapshot.v, sim.v) and np.array_equal(end_snapshot.tau, sim.tau), "latest snapshot did not match the final simulation data"
+    
+def test_snapshots_are_decoupled_from_state(so101_model):
+    model = so101_model
+    dt = 0.001
+
+    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim.tick()
+    snapshot = sim.get_snapshot()
+    sim.tick()
+    assert snapshot.q[0] != sim.q[0], "snapshot decoupling failed: previous snapshot changed with simstate"
+    
+def test_snapshot_is_frozen(so101_model):
+    model = so101_model
+    dt = 0.001
+    n_steps = 100
+
+    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+
+    start_snapshot = sim.get_snapshot()
+    with pytest.raises(FrozenInstanceError):
+        start_snapshot.t = 0.3
