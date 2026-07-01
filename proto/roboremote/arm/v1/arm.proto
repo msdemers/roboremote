@@ -4,31 +4,33 @@ package roboremote.arm.v1;
 
 option go_package = "github.com/msdemers/roboremote/proto/gen/go/arm/v1";
 
-// ─── Core State ───────────────────────────────────────────────────────────────
+// ─── Value Types ──────────────────────────────────────────────────────────────
 
-message JointState {
-  string name     = 1;
-  double position = 2;  // radians
-  double velocity = 3;  // rad/s
-  double effort   = 4;  // Nm
+message Coordinates {
+  repeated double q = 1; // generalized coordinates q, radians, length nq
 }
 
-message Pose {
-  double x  = 1;
-  double y  = 2;
-  double z  = 3;
-  double qw = 4;
-  double qx = 5;
-  double qy = 6;
-  double qz = 7;
+message Velocities {
+  repeated double v = 1; // generalized velocities v, radians/sec, length nv
 }
 
-message ArmState {
-  repeated JointState joints = 1;
-  Pose   end_effector        = 2;
-  double sim_time            = 3;
-  ArmStatus status           = 4;
+message Actuation {
+  repeated double tau = 1; // motor torques/forces tau, Nm or N, length nv
 }
+
+message CartesianPose {
+  // end-effector position in world frame, meters
+  double x = 1;
+  double y = 2;
+  double z = 3;
+  // end-effector attitude, unit quaternion, scalar-last {x,y,z,w}, Hamilton
+  double qx = 4;
+  double qy = 5;
+  double qz = 6;
+  double qw = 7;
+}
+
+// ─── Status ───────────────────────────────────────────────────────────────
 
 enum ArmStatus {
   ARM_STATUS_UNSPECIFIED = 0;
@@ -39,86 +41,38 @@ enum ArmStatus {
 
 // ─── Control Inputs ───────────────────────────────────────────────────────────
 
-message JointCommand {
-  string name               = 1;
-  double target_position    = 2;  // radians
-  double target_velocity    = 3;  // rad/s
-  double feedforward_torque = 4;  // Nm
-}
-
-message ControlCommand {
-  repeated JointCommand joints = 1;
-  ControlMode mode             = 2;
-}
-
 enum ControlMode {
-  CONTROL_MODE_UNSPECIFIED         = 0;
-  CONTROL_MODE_GRAVITY_COMP        = 1;
-  CONTROL_MODE_JOINT_PD            = 2;
-  CONTROL_MODE_TRAJECTORY_PLAYBACK = 3;
+  CONTROL_MODE_UNSPECIFIED          = 0;
+  CONTROL_MODE_GRAVITY_COMP         = 1;
+  CONTROL_MODE_TASK_PD_COMPENSATED  = 2;
+  CONTROL_MODE_TASK_PD_RAW          = 3;
+  CONTROL_MODE_JOINT_PD_COMPENSATED = 4;
+  CONTROL_MODE_JOINT_PD_RAW         = 5;
 }
 
-// ─── External Perturbation (Tugging) ──────────────────────────────────────────
+// ─── Core State     ───────────────────────────────────────────────────────────
 
-message Wrench {
-  double fx = 1;  // N
-  double fy = 2;
-  double fz = 3;
-  double tx = 4;  // Nm
-  double ty = 5;
-  double tz = 6;
-}
-
-message ExternalWrench {
-  string link_name         = 1;
-  Pose   application_point = 2;
-  Wrench wrench            = 3;
-  double duration_seconds  = 4;
-}
-
-// ─── Sensor Nodes ─────────────────────────────────────────────────────────────
-
-message SensorNode {
-  string id           = 1;
-  string parent_link  = 2;
-  Pose   local_offset = 3;
-}
-
-message SensorNodeState {
-  string id         = 1;
-  Pose   world_pose = 2;
+message ArmState {
+  ArmStatus status = 1;
+  ControlMode active_mode = 2;
+  oneof active_target {
+    Coordinates joint_target = 3;
+    CartesianPose cartesian_target = 4;
+  }
+  double sim_time = 5; // seconds of simulated time
+  Coordinates q = 6;
+  Velocities v = 7;
+  Actuation tau = 8;
+  CartesianPose end_effector = 9;
 }
 
 // ─── Streaming Messages ───────────────────────────────────────────────────────
 
-message SimStreamResponse {
-  ArmState                 arm_state    = 1;
-  repeated SensorNodeState sensor_nodes = 2;
-  string active_control_mode            = 3;
-}
-
-message SimStreamRequest {
-  oneof command {
-    ControlCommand control          = 1;
-    ExternalWrench wrench           = 2;
-    SensorNode     add_sensor       = 3;
-    string         remove_sensor_id = 4;
-  }
-}
-
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 service ArmSimService {
-  rpc SimStream(stream SimStreamRequest) returns (stream SimStreamResponse);
-  rpc GetArmState(GetArmStateRequest) returns (GetArmStateResponse);
-  rpc SetControlMode(SetControlModeRequest) returns (SetControlModeResponse);
+  
 }
-
-message GetArmStateResponse {
-  ArmState arm_state = 1;
-}
-
-message GetArmStateRequest {}
 
 message SetControlModeRequest {
   ControlMode mode = 1;
