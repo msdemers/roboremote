@@ -4,7 +4,7 @@ package roboremote.arm.v1;
 
 option go_package = "github.com/msdemers/roboremote/proto/gen/go/arm/v1";
 
-// ─── Value Types ──────────────────────────────────────────────────────────────
+// --- Value Types 
 
 message Coordinates {
   repeated double q = 1; // generalized coordinates q, radians, length nq
@@ -30,7 +30,7 @@ message CartesianPose {
   double qw = 7;
 }
 
-// ─── Status ───────────────────────────────────────────────────────────────
+// --- Status 
 
 enum ArmStatus {
   ARM_STATUS_UNSPECIFIED = 0;
@@ -39,7 +39,7 @@ enum ArmStatus {
   ARM_STATUS_FAULT       = 3;
 }
 
-// ─── Control Inputs ───────────────────────────────────────────────────────────
+// --- Control Inputs 
 
 enum ControlMode {
   CONTROL_MODE_UNSPECIFIED          = 0;
@@ -50,7 +50,7 @@ enum ControlMode {
   CONTROL_MODE_JOINT_PD_RAW         = 5;
 }
 
-// ─── Core State     ───────────────────────────────────────────────────────────
+// --- Core State 
 
 message ArmState {
   ArmStatus status = 1;
@@ -66,9 +66,59 @@ message ArmState {
   CartesianPose end_effector = 9;
 }
 
-// ─── Streaming Messages ───────────────────────────────────────────────────────
+// --- Model Description 
 
-// ─── Services ─────────────────────────────────────────────────────────────────
+message JointInfo {
+  // Unique name and ID
+  string name = 1;
+  uint32 id = 2;
+  uint32 parent_id = 3;
+
+  // Kinematic parameters
+  enum JointType {
+    UNKNOWN_JOINT = 0;
+    REVOLUTE_JOINT = 1; // nq = nv = 1, units: radians, radians/sec, Nm
+    PRISMATIC_JOINT = 2; // nq = nv = 1, units: meters, meters/sec, N
+    SPHERICAL_JOINT = 3;
+    PLANAR_JOINT = 4;
+    FREE_FLYER_JOINT = 5;
+    FIXED_JOINT = 6;
+  }
+  JointType type = 4;
+
+  // Degrees of Freedom & Configuration Dimensions
+  uint32 nq = 5; // Size of the joint's configuration space vector
+  uint32 nv = 6; // Size of the joint's tangent/velocity vector
+
+  // Starting Indices in System Vectors
+  uint32 idx_q = 7; // Starting index in the system configuration vector q
+  uint32 idx_v = 8; // Starting index in the system velocity vector v
+
+  // Dynamic & Kinematic Limits
+  repeated double position_limit_lower = 9;
+  repeated double position_limit_upper = 10;
+  repeated double velocity_limit = 11;
+  repeated double effort_limit = 12;
+}
+
+message ModelDescriptor {
+  string model_name = 1;
+  string model_version = 2;
+  uint32 nq = 3;
+  uint32 nv = 4;
+  repeated JointInfo joints = 5;
+}
+
+// --- Streaming Messages 
+
+message StreamEnvelope {
+  oneof payload {
+    ModelDescriptor descriptor = 1;
+    ArmState        state      = 2;
+  }
+}
+
+// --- Services 
 
 service ArmSimService {
   
