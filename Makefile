@@ -11,8 +11,8 @@ build:
 	cd tui && go build ./...
 
 proto:
-	buf lint proto/
-	buf generate
+	cd proto && buf lint
+	cd proto && buf generate
 	cd physics && uv run python -m grpc_tools.protoc \
 		-I../proto \
 		--python_out=../proto/gen/python \
