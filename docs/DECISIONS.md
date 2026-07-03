@@ -289,17 +289,20 @@ the sidecar's `SimSnapshot{t, q, v, tau}` is already shaped.
   DOF *inside* `q`, not a separate field; the end-effector is a kinematic
   *frame* whose pose is computed by FK, not a coordinate.
 - `Coordinates` / `Velocities` / `Actuation` are **shared message types**,
-  reused by command setpoints (e.g. `SetJointTarget`, feedforward torque).
+  reused by command setpoints (`SetTarget`; see ADR-013).
 - The EE pose type is named **`CartesianPose`** (position + quaternion) — not
   `Pose` (ambiguous with configuration `q`) nor `Transform` (implies a
   homogeneous matrix).
 - Frames are **opaque positional vectors**; their meaning is supplied once by
-  an **`ArmDescriptor` delivered as the first message of the `Subscribe`
-  stream** (`oneof StreamFrame { descriptor | state }`) — consistency by
-  construction, re-delivered on every reconnect. The descriptor carries joint
-  names in model order, per-joint `q`/`v` start index and dimension (from
-  Pinocchio's `idx_q`/`idx_v`/`nq`/`nv`), total `nq`/`nv`, limits, units, the
-  EE frame name, and `model_name` + `model_version` (hash).
+  a **`ModelDescriptor` delivered as the first message of the `Subscribe`
+  stream** (`StreamEnvelope { oneof payload: descriptor | state }`) —
+  consistency by construction, re-delivered on every reconnect. The descriptor
+  carries total `nq`/`nv` plus a `repeated JointInfo`, each with joint name,
+  `JointType`, per-joint `nq`/`nv`, start indices (Pinocchio's
+  `idx_q`/`idx_v`), position/velocity/effort limits, and tree topology
+  (`id`/`parent_id` for per-joint TUI), plus `model_name` + `model_version`
+  (hash). Units are conveyed by `JointType` (revolute→rad, prismatic→m), not an
+  explicit units field. Final message names finalized in ADR-015.
 - **Model geometry/meshes are NOT shipped over gRPC.** Clients load them
   out-of-band (volume mount per ADR-004) and verify against
   `model_name`/`model_version`. Asset distribution for genuinely remote
@@ -436,3 +439,80 @@ validates, and originates acks. The server implements the same interface:
 - Validation, authority, and acks live solely in the sidecar (ADR-007).
 - One service def + shared messages = no payload duplication; a client sees an
   identical interface whether it talks to the sidecar or the server.
+
+---
+
+## ADR-015: Proto Finalization — Naming and Error Model
+
+**Status:** Accepted
+
+**Context:**
+ADR-008/010 were written before the proto was authored; the built file settled
+some names and an error model those ADRs left loose. Recorded here as the
+authoritative surface.
+
+**Decision:**
+- **Names:** the stream-wrapper type is `StreamEnvelope` (a `oneof payload` of
+  `ModelDescriptor` | `ArmState`), not `StreamFrame`; the descriptor is
+  `ModelDescriptor`, not `ArmDescriptor`. Per-joint metadata is `JointInfo`
+  with a nested `JointType` enum.
+- **Errors via gRPC status codes, not payload fields.** Command RPCs signal
+  rejection with a non-OK status (e.g. `INVALID_ARGUMENT` for a target whose
+  `oneof` arm mismatches the active mode), raised in the handler — not a
+  `bool success` / `string message` body. This uses gRPC's out-of-band status
+  channel instead of reinventing it.
+- **Dedicated empty response messages** (`SetControlModeResponse` {},
+  `SetTargetResponse` {}, `ResetConfigurationResponse` {}), not
+  `google.protobuf.Empty` — so a field can be added later without breaking the
+  RPC signature (Google API guidance). Success carries no payload today because
+  the stream already echoes `active_mode`/`active_target`.
+- **`StreamRate`** values are `STREAM_RATE_{UNSPECIFIED,30,60,120}`;
+  `UNSPECIFIED` resolves to 60 Hz **in the server handler**, not via the proto
+  zero value (keeps zero-as-sentinel discipline).
+- **`ResetConfiguration`** resets to the model's canonical configuration via
+  `pin.neutral(model)` (correct on the manifold for any joint types), not
+  literal zeros; request is empty.
+- Enum values are prefixed with their UPPER_SNAKE enum name
+  (`STREAM_RATE_`, `JOINT_TYPE_`, `ARM_STATUS_`, `CONTROL_MODE_`) — proto3 enum
+  values leak into the enclosing namespace, so the prefix prevents collisions.
+
+**Consequences:**
+- Clients handle command failure in their error path, not by branching on a
+  body flag.
+- `buf lint` (STANDARD) passes; the one excepted rule is
+  `RPC_RESPONSE_STANDARD_NAME` (Subscribe returns `StreamEnvelope`, not
+  `SubscribeResponse` — an intentional, meaningful name for a streaming
+  oneof wrapper).
+- Supersedes the `StreamFrame`/`ArmDescriptor` names in ADR-008/010.
+
+---
+
+## ADR-016: buf Tooling Layout and Dual Codegen
+
+**Status:** Accepted
+
+**Context:**
+The repo is not a monorepo but a set of self-contained services
+(`physics/`, `server/`, `tui/`), each owning its own build config
+(`pyproject.toml`, `go.mod`). buf config and generated stubs must fit that
+convention and serve both Go and Python consumers.
+
+**Decision:**
+- buf v2, **single module**, config co-located in `proto/` (`proto/buf.yaml`,
+  `proto/buf.gen.yaml`), mirroring the per-component config-ownership
+  convention. The deprecated v1 `buf.work.yaml` is removed; no root buf config.
+- **Dual codegen:** `buf generate` emits **Go only** (`protoc-gen-go`,
+  `protoc-gen-go-grpc`). **Python** is generated separately via
+  `grpc_tools.protoc` run inside `physics/`'s uv env, so stub versions match
+  the pinned `grpcio` runtime in the sidecar.
+- **`make proto` is the single full-regen entry point** (lint → Go gen →
+  Python gen). Running bare `buf generate` regenerates only Go and leaves
+  Python stubs stale.
+
+**Consequences:**
+- Config lives beside the protos it governs; run buf from `proto/` (or via
+  `make proto`, which `cd`s in).
+- Config-internal paths are cwd-relative, so `buf.gen.yaml` uses proto-local
+  paths (`directory: .`, `out: gen/go`).
+- Python stub/runtime version parity is guaranteed at the cost of two codegen
+  tools rather than one.

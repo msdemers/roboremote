@@ -29,7 +29,7 @@
 - [x] Commit: "chore: initialize repo structure"
 
 ## Phase 2: Proto and Code Generation
-- [x] Write proto/arm.proto (drafted, needs final review)
+- [x] Write proto/arm.proto (redesigned + linting clean; ADR-008..016)
 - [x] Install and configure buf
 - [x] Write buf.gen.yaml
 - [x] Generate Go stubs → proto/gen/go/
