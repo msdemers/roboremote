@@ -8,7 +8,7 @@ print(f"Model name: {model.name}")
 print(f"Number of joints: {model.njoints}")
 print(f"Number of DOF: {model.nv}")
 for i, name in enumerate(model.names):
-    print(f"  joint {i}: {name}")
+    print(f"  joint {i}: {name} - {model.joints[i].shortname()}")
 
 data = model.createData()
 
