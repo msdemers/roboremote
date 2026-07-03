@@ -19,11 +19,11 @@ message Actuation {
 }
 
 message CartesianPose {
-  // end-effector position in world frame, meters
+  // position in world-frame, meters
   double x = 1;
   double y = 2;
   double z = 3;
-  // end-effector attitude, unit quaternion, scalar-last {x,y,z,w}, Hamilton
+  // angular attitude in world-frame, unit quaternion, scalar-last {x,y,z,w}, Hamilton
   double qx = 4;
   double qy = 5;
   double qz = 6;
@@ -76,13 +76,13 @@ message JointInfo {
 
   // Kinematic parameters
   enum JointType {
-    UNKNOWN_JOINT = 0;
-    REVOLUTE_JOINT = 1; // nq = nv = 1, units: radians, radians/sec, Nm
-    PRISMATIC_JOINT = 2; // nq = nv = 1, units: meters, meters/sec, N
-    SPHERICAL_JOINT = 3;
-    PLANAR_JOINT = 4;
-    FREE_FLYER_JOINT = 5;
-    FIXED_JOINT = 6;
+    JOINT_TYPE_UNSPECIFIED = 0;
+    JOINT_TYPE_REVOLUTE = 1; // nq = nv = 1, units: radians, radians/sec, Nm
+    JOINT_TYPE_PRISMATIC = 2; // nq = nv = 1, units: meters, meters/sec, N
+    JOINT_TYPE_SPHERICAL = 3;
+    JOINT_TYPE_PLANAR = 4;
+    JOINT_TYPE_FREE_FLYER = 5;
+    JOINT_TYPE_FIXED = 6;
   }
   JointType type = 4;
 
@@ -118,17 +118,43 @@ message StreamEnvelope {
   }
 }
 
-// --- Services 
+// --- Services Messages
 
-service ArmSimService {
-  
+enum StreamRate {
+  STREAM_RATE_UNSPECIFIED = 0;
+  STREAM_RATE_30 = 1; // 30 Hz
+  STREAM_RATE_60 = 2; // 60 Hz (default)
+  STREAM_RATE_120 = 3; // 120 Hz
+}
+
+message SubscribeRequest {
+  StreamRate rate = 1;
 }
 
 message SetControlModeRequest {
   ControlMode mode = 1;
 }
 
-message SetControlModeResponse {
-  bool   success = 1;
-  string message = 2;
+message SetControlModeResponse {}
+
+message SetTargetRequest {
+  oneof target {
+    Coordinates joint_coordinates = 1;
+    CartesianPose cartesian_pose = 2;
+  }
+}
+
+message SetTargetResponse {}
+
+message ResetConfigurationRequest {} // use simulator's notion of default/neutral pose
+
+message ResetConfigurationResponse {}
+
+// --- Services
+
+service ArmSimService {
+  rpc Subscribe(SubscribeRequest) returns (stream StreamEnvelope);
+  rpc SetControlMode(SetControlModeRequest) returns (SetControlModeResponse);
+  rpc SetTarget(SetTargetRequest) returns (SetTargetResponse);
+  rpc ResetConfiguration(ResetConfigurationRequest) returns (ResetConfigurationResponse);
 }
