@@ -61,3 +61,9 @@ def build_model_descriptor(model: pin.Model, model_name: str, model_version: str
     )
 
     return desc
+
+def se3_to_cartesian_pose(se3: pin.SE3) -> pb.CartesianPose:
+    translation = se3.translation
+    quaternion = pin.Quaternion(se3.rotation)
+    return pb.CartesianPose(x=translation[0], y=translation[1], z=translation[2],
+                            qx=quaternion.x, qy=quaternion.y, qz=quaternion.z, qw=quaternion.w)

@@ -28,3 +28,29 @@ def test_build_model_descriptor(so101_model):
     assert joint_info_shoulder_pan.name == "shoulder_pan", "first joint failed to match expectations from so-101 arm"
     assert joint_info_shoulder_pan.idx_q == 0, "first joint failed to match expectations from so-101 arm"
     assert joint_info_shoulder_pan.type == pb.JointInfo.JOINT_TYPE_REVOLUTE, "first joint failed to match expectations from so-101 arm"
+
+def test_identity_se3_to_cartesian_pose(so101_model):
+    identity_se3: pin.SE3 = pin.SE3.Identity()
+    identity_pose: pb.CartesianPose = mappers.se3_to_cartesian_pose(identity_se3)
+
+    assert identity_pose.x == 0.0
+    assert identity_pose.y == 0.0
+    assert identity_pose.z == 0.0
+    assert identity_pose.qx == 0.0
+    assert identity_pose.qy == 0.0
+    assert identity_pose.qz == 0.0
+    assert identity_pose.qw == 1.0
+
+def test_known_se3_to_cartesian_pose(so101_model):
+    p = np.array([1.0, 2.0, 3.0])
+    theta = np.pi/2
+    M: pin.SE3 = pin.SE3(pin.utils.rotate('z', theta), p)
+    cartesian_pose: pb.CartesianPose = mappers.se3_to_cartesian_pose(M)
+
+    assert cartesian_pose.x == 1.0
+    assert cartesian_pose.y == 2.0
+    assert cartesian_pose.z == 3.0
+    assert cartesian_pose.qx == 0.0
+    assert cartesian_pose.qy == 0.0
+    assert cartesian_pose.qz == pytest.approx(np.sqrt(2)/2)
+    assert cartesian_pose.qw == pytest.approx(np.sqrt(2)/2)
