@@ -1,6 +1,23 @@
 from roboremote.arm.v1 import arm_pb2 as pb
 import pinocchio as pin
 import numpy as np
+from sim.simulator import SimSnapshot, Simulator, status
+
+_STATUS_MAP = {
+    status.SimStatus.UNSPECIFIED: pb.ARM_STATUS_UNSPECIFIED,
+    status.SimStatus.IDLE: pb.ARM_STATUS_IDLE,
+    status.SimStatus.RUNNING: pb.ARM_STATUS_RUNNING,
+    status.SimStatus.FAULT: pb.ARM_STATUS_FAULT
+}
+
+_MODE_MAP = {
+    status.ControlMode.UNSPECIFIED: pb.CONTROL_MODE_UNSPECIFIED,
+    status.ControlMode.GRAVITY_COMP: pb.CONTROL_MODE_GRAVITY_COMP,
+    status.ControlMode.TASK_PD_COMPENSATED: pb.CONTROL_MODE_TASK_PD_COMPENSATED,
+    status.ControlMode.TASK_PD_RAW: pb.CONTROL_MODE_TASK_PD_RAW,
+    status.ControlMode.JOINT_PD_COMPENSATED: pb.CONTROL_MODE_JOINT_PD_COMPENSATED,
+    status.ControlMode.JOINT_PD_RAW: pb.CONTROL_MODE_JOINT_PD_RAW,
+}
 
 def get_joint_type(joint: pin.JointModel) -> pb.JointInfo.JointType:
     """
@@ -67,3 +84,22 @@ def se3_to_cartesian_pose(se3: pin.SE3) -> pb.CartesianPose:
     quaternion = pin.Quaternion(se3.rotation)
     return pb.CartesianPose(x=translation[0], y=translation[1], z=translation[2],
                             qx=quaternion.x, qy=quaternion.y, qz=quaternion.z, qw=quaternion.w)
+
+def snapshot_to_arm_state(snap: SimSnapshot) -> pb.ArmState:
+    arm_state = pb.ArmState(
+        status=_STATUS_MAP[snap.sim_status],
+        active_mode=_MODE_MAP[snap.active_mode],
+        sim_time=snap.t,
+        q=pb.Coordinates(q=snap.q),
+        v=pb.Velocities(v=snap.v),
+        tau=pb.Actuation(tau=snap.tau),
+        end_effector=se3_to_cartesian_pose(snap.ee_pose)
+    )
+    # handle custom logic for the oneof structure of active_target
+    target = snap.active_target
+    if isinstance(target, np.ndarray):
+        arm_state.joint_target.CopyFrom(pb.Coordinates(q=target))
+    elif isinstance(target, pin.SE3):
+        arm_state.cartesian_target.CopyFrom(se3_to_cartesian_pose(target))
+    
+    return arm_state
