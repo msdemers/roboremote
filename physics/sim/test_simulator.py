@@ -11,7 +11,7 @@ def test_clock(so101_model):
     model = so101_model
     dt = 0.001
     n_steps = 100
-    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
     for _ in range(n_steps):
         sim.tick()
     assert abs(sim.t - n_steps*dt) < 1e-9, "simulator clock time does not match the numbers of sim step ticks"
@@ -28,7 +28,7 @@ def test_sim_matches_integrator(so101_model):
 
     
 
-    sim = simulator.Simulator(model, const_tau_policy, dt, q_0, v_0)
+    sim = simulator.Simulator(model, dt, const_tau_policy, q_0, v_0)
     sim.tick()
 
     data = model.createData()
@@ -44,7 +44,7 @@ def test_free_fall_under_zero_tau(so101_model):
     dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
 
     ee_pose_0 = forward.end_effector_pose(sim.model, sim.data, sim.q)
 
@@ -61,7 +61,7 @@ def test_static_under_grav_comp_policy(so101_model):
     dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, controllers.gravity_compensation_policy, dt, pin.randomConfiguration(model), np.zeros(model.nv))
+    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy, pin.randomConfiguration(model), np.zeros(model.nv))
 
     ee_pose_0 = forward.end_effector_pose(model, sim.data, sim.q)
 
@@ -76,7 +76,7 @@ def test_run_stops(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, controllers.gravity_compensation_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy)
 
     thread = threading.Thread(target=sim.run, daemon=True)
     thread.start()
@@ -91,7 +91,7 @@ def test_run_advances_realtime(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, controllers.gravity_compensation_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy)
 
     t_start = time.perf_counter()
     thread = threading.Thread(target=sim.run, daemon=True)
@@ -108,7 +108,7 @@ def test_snapshot_returns_valid_data(so101_model):
     dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
 
     start_snapshot = sim.get_snapshot()
 
@@ -123,7 +123,7 @@ def test_snapshots_are_decoupled_from_state(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
     sim.tick()
     snapshot = sim.get_snapshot()
     sim.tick()
@@ -134,7 +134,7 @@ def test_snapshot_is_frozen(so101_model):
     dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, controllers.zero_control_policy, dt)
+    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
 
     start_snapshot = sim.get_snapshot()
     with pytest.raises(FrozenInstanceError):

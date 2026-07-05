@@ -1,8 +1,11 @@
-from . import integrator
+from . import integrator, status
+from control import controllers
+from kinematics import forward
 from dataclasses import dataclass
 import numpy as np
 import pinocchio as pin
 import time, threading
+from typing import Union, Optional
 
 @dataclass(frozen=True, eq=False)
 class SimSnapshot:
@@ -10,6 +13,10 @@ class SimSnapshot:
     q: np.ndarray
     v: np.ndarray
     tau: np.ndarray
+    ee_pose: pin.SE3
+    sim_status: status.SimStatus
+    active_mode: status.ControlMode
+    active_target: Optional[Union[np.ndarray, pin.SE3]]
 
     def __eq__(self, other):
         if not isinstance(other, SimSnapshot):
@@ -22,13 +29,17 @@ class SimSnapshot:
         )
 
 class Simulator:
-    def __init__(self, model, policy, dt, q0=None, v0=None):
+    def __init__(self, model, dt, policy=controllers.gravity_compensation_policy, q0=None, v0=None):
         self.model = model
         self.data = model.createData()
-        self.policy = policy
         self.dt = dt
+        self.policy = policy
         self.q = (q0 if q0 is not None else pin.neutral(model)).copy()
         self.v = (v0 if v0 is not None else np.zeros(model.nv)).copy()
+        self.ee_pose = forward.end_effector_pose(self.model, self.data, self.q)
+        self.sim_status = status.SimStatus.IDLE
+        self.active_mode = status.ControlMode.GRAVITY_COMP
+        self.active_target = None
         self.t = 0.0
         self.tau = np.zeros(model.nv)
         self._stop = threading.Event()
@@ -37,7 +48,9 @@ class Simulator:
         tau = self.policy(self.model, self.data, self.q, self.v)
         self.q, self.v = integrator.step(self.model, self.data, self.q, self.v, tau, self.dt)
         self.tau = tau
+        self.ee_pose = forward.end_effector_pose(self.model, self.data, self.q)
         self.t += self.dt
+        
 
     def run(self):
         next_t = time.perf_counter()
@@ -54,4 +67,13 @@ class Simulator:
         self._stop.set()
 
     def get_snapshot(self) -> SimSnapshot:
-        return SimSnapshot(self.t, self.q.copy(), self.v.copy(), self.tau.copy())
+        return SimSnapshot(
+            self.t, 
+            self.q.copy(), 
+            self.v.copy(), 
+            self.tau.copy(), 
+            self.ee_pose.copy(), 
+            self.sim_status, 
+            self.active_mode, 
+            None if self.active_target is None else self.active_target.copy()
+        )
