@@ -1,4 +1,4 @@
-.PHONY: up down build proto test
+.PHONY: up down build proto test run-physics
 
 up:
 	docker compose up --build
@@ -19,6 +19,9 @@ proto:
 		--grpc_python_out=../proto/gen/python \
 		../proto/roboremote/arm/v1/arm.proto
 
+run-physics:
+	cd physics && PYTHONPATH=../proto/gen/python uv run python main.py
 test:
 	cd server && go test ./...
 	cd tui && go test ./...
+	cd physics && uv run pytest

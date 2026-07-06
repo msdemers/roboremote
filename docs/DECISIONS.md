@@ -516,3 +516,40 @@ convention and serve both Go and Python consumers.
   paths (`directory: .`, `out: gen/go`).
 - Python stub/runtime version parity is guaranteed at the cost of two codegen
   tools rather than one.
+
+---
+
+## ADR-017: Generated-Code Distribution Across Polyglot Services
+
+**Status:** Accepted (interim); durable step deferred to Phase 3
+
+**Context:**
+Generated stubs live at `proto/gen/{go,python}` — a sibling of `physics/`,
+`server/`, `tui/`. That location sits **outside** every service's source
+directory, every service's Docker **build context** (`build: ./physics` can't
+reach `../proto`), and every Go **module** boundary. The Python stubs use
+namespace packages (no `__init__.py`), so `import roboremote.arm.v1.arm_pb2`
+resolves only when `proto/gen/python` is on `sys.path`. Two distinct problems
+follow, and they are **not** the same fix:
+- **Local:** purely a `sys.path` issue.
+- **Container:** the stubs aren't even in the image — the build context can't
+  see them — *before* any path concern applies.
+
+**Decision:**
+- **Interim (v1 local dev):** make `proto/gen/python` importable via one
+  central, checked-in mechanism per entry point — `pytest` `pythonpath` for
+  tests, and a `make run-physics` target that sets `PYTHONPATH=../proto/gen/python`
+  for the server. No ad-hoc per-invocation `PYTHONPATH` scattered in docs/shells.
+- **Durable (deferred to Phase 3 / containerization):** package the generated
+  protos as an installable dependency (`roboremote-proto`) that each Python
+  service depends on, and set the Docker build context to the repo root (or
+  install a pre-built wheel) so images contain the stubs. The Go side has the
+  identical shape — resolve `proto/gen/go` across the separate `server`/`tui`
+  modules via a `go.work` or a dedicated module.
+
+**Consequences:**
+- Local dev (tests + server + smoke client) unblocked now without spreading a
+  fragile one-liner.
+- The container gap is a known, bounded change scoped to Phase 3, where the
+  compose/Dockerfiles are edited anyway — not a lurking unknown.
+- Distribution strategy is recorded, so it isn't rediscovered per service.

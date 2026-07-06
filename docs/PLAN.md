@@ -53,6 +53,9 @@
       torque terms summed into behaviors (see ADR pending)
 - [ ] Implement gRPC server (physics side)
 - [ ] Containerize and verify headless
+      - [ ] Durable generated-code distribution (ADR-017): package `roboremote-proto`
+            as an installable dep; set Docker build context to repo root so stubs
+            land in the image. (Interim local PYTHONPATH in place.)
 - [ ] Commit: "feat: physics sidecar v1"
 
 ## Phase 4: Sim Server
