@@ -43,13 +43,20 @@ class Simulator:
         self.t = 0.0
         self.tau = np.zeros(model.nv)
         self._stop = threading.Event()
+        self._lock = threading.Lock()
 
     def tick(self):
-        tau = self.policy(self.model, self.data, self.q, self.v)
-        self.q, self.v = integrator.step(self.model, self.data, self.q, self.v, tau, self.dt)
-        self.tau = tau
-        self.ee_pose = forward.end_effector_pose(self.model, self.data, self.q)
-        self.t += self.dt
+        with self._lock:
+            model, q, v, dt, policy = self.model, self.q, self.v, self.dt, self.policy
+        tau = policy(model, self.data, q, v)
+        q_next, v_next = integrator.step(model, self.data, q, v, tau, dt)
+        ee_pose = forward.end_effector_pose(model, self.data, q_next)
+        with self._lock:
+            self.q = q_next
+            self.v = v_next
+            self.tau = tau
+            self.ee_pose = ee_pose
+            self.t += dt
         
 
     def run(self):
@@ -67,13 +74,14 @@ class Simulator:
         self._stop.set()
 
     def get_snapshot(self) -> SimSnapshot:
-        return SimSnapshot(
-            self.t, 
-            self.q.copy(), 
-            self.v.copy(), 
-            self.tau.copy(), 
-            self.ee_pose.copy(), 
-            self.sim_status, 
-            self.active_mode, 
-            None if self.active_target is None else self.active_target.copy()
-        )
+        with self._lock:
+            return SimSnapshot(
+                self.t, 
+                self.q.copy(), 
+                self.v.copy(), 
+                self.tau.copy(), 
+                self.ee_pose.copy(), 
+                self.sim_status, 
+                self.active_mode, 
+                None if self.active_target is None else self.active_target.copy()
+            )
