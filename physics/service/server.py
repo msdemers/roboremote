@@ -1,0 +1,37 @@
+import os
+import pathlib
+import time, threading
+import pinocchio as pin
+from sim.simulator import Simulator
+from concurrent import futures
+import grpc
+from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
+from .servicer import ArmSimServicer
+
+
+def serve():
+    port = os.getenv("PHYSICS_PORT", "50051")
+    bind_address = f"[::]:{port}"
+    model_path = pathlib.Path(__file__).parents[2] / "models/so101/so101_new_calib.urdf"
+    model_name = "SO-101 Manipulator Arm"
+    model_version = "placeholder for hash"
+    dt = 0.001
+
+    # start physics sim daemon
+    model: pin.Model = pin.buildModelFromUrdf(str(model_path))
+    sim = Simulator(model, dt)
+    threading.Thread(target=sim.run, daemon=True).start()
+
+    # setup gRPC
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
+    pb_grpc.add_ArmSimServiceServicer_to_server(ArmSimServicer(sim, model_name, model_version), server)
+    server.add_insecure_port(bind_address)
+
+    # service lifecycle
+    server.start()
+    print(f"physics sidecar listening on {bind_address}")
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        sim.stop()
+        server.stop(2.0) # wait a grave period to allow sim loop to stop
