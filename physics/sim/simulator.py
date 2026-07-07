@@ -29,17 +29,15 @@ class SimSnapshot:
         )
 
 class Simulator:
-    def __init__(self, model, dt, policy=controllers.gravity_compensation_policy, q0=None, v0=None):
+    def __init__(self, model, dt, controller: controllers.Controller | None = None, q0=None, v0=None):
         self.model = model
         self.data = model.createData()
         self.dt = dt
-        self.policy = policy
+        self.controller = controllers.GravityCompensationController() if controller is None else controller
         self.q = (q0 if q0 is not None else pin.neutral(model)).copy()
         self.v = (v0 if v0 is not None else np.zeros(model.nv)).copy()
         self.ee_pose = forward.end_effector_pose(self.model, self.data, self.q)
         self.sim_status = status.SimStatus.IDLE
-        self.active_mode = status.ControlMode.GRAVITY_COMP
-        self.active_target = None
         self.t = 0.0
         self.tau = np.zeros(model.nv)
         self._stop = threading.Event()
@@ -47,8 +45,8 @@ class Simulator:
 
     def tick(self):
         with self._lock:
-            model, q, v, dt, policy = self.model, self.q, self.v, self.dt, self.policy
-        tau = policy(model, self.data, q, v)
+            model, q, v, dt, controller = self.model, self.q, self.v, self.dt, self.controller
+        tau = controller.compute(model, self.data, q, v)
         q_next, v_next = integrator.step(model, self.data, q, v, tau, dt)
         ee_pose = forward.end_effector_pose(model, self.data, q_next)
         with self._lock:
@@ -82,6 +80,6 @@ class Simulator:
                 self.tau.copy(), 
                 self.ee_pose.copy(), 
                 self.sim_status, 
-                self.active_mode, 
-                None if self.active_target is None else self.active_target.copy()
+                self.controller.mode, 
+                None if self.controller.target is None else self.controller.target.copy()
             )

@@ -1,5 +1,6 @@
 from . import simulator, integrator
 from control import controllers
+from sim.status import ControlMode
 from kinematics import forward
 import numpy as np
 import pinocchio as pin
@@ -7,11 +8,17 @@ import threading, time
 from dataclasses import FrozenInstanceError
 import pytest
 
+class ConstantController:
+    def __init__(self, tau, mode=ControlMode.UNSPECIFIED, target=None):
+        self._tau, self.mode, self.target = tau, mode, target
+    def compute(self, model, data, q, v):
+        return self._tau
+
 def test_clock(so101_model):
     model = so101_model
     dt = 0.001
     n_steps = 100
-    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
+    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
     for _ in range(n_steps):
         sim.tick()
     assert abs(sim.t - n_steps*dt) < 1e-9, "simulator clock time does not match the numbers of sim step ticks"
@@ -22,17 +29,13 @@ def test_sim_matches_integrator(so101_model):
 
     q_0 = pin.neutral(model)
     v_0 = np.zeros(model.nv)
-    
-    def const_tau_policy(model, data, q, v):
-        return 0.5*np.ones(model.nv)
 
+    tau_c = 0.5*np.ones(model.nv)
     
-
-    sim = simulator.Simulator(model, dt, const_tau_policy, q_0, v_0)
+    sim = simulator.Simulator(model, dt, ConstantController(tau_c), q_0, v_0)
     sim.tick()
 
     data = model.createData()
-    tau_c = const_tau_policy(model, data, q_0, v_0)
 
     q, v = integrator.step(model, data, q_0, v_0, tau_c, dt)
 
@@ -44,7 +47,7 @@ def test_free_fall_under_zero_tau(so101_model):
     dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
+    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
 
     ee_pose_0 = forward.end_effector_pose(sim.model, sim.data, sim.q)
 
@@ -61,7 +64,7 @@ def test_static_under_grav_comp_policy(so101_model):
     dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy, pin.randomConfiguration(model), np.zeros(model.nv))
+    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController(), pin.randomConfiguration(model), np.zeros(model.nv))
 
     ee_pose_0 = forward.end_effector_pose(model, sim.data, sim.q)
 
@@ -76,7 +79,7 @@ def test_run_stops(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy)
+    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController())
 
     thread = threading.Thread(target=sim.run, daemon=True)
     thread.start()
@@ -91,7 +94,7 @@ def test_run_advances_realtime(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, dt, controllers.gravity_compensation_policy)
+    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController())
 
     t_start = time.perf_counter()
     thread = threading.Thread(target=sim.run, daemon=True)
@@ -108,7 +111,7 @@ def test_snapshot_returns_valid_data(so101_model):
     dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
+    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
 
     start_snapshot = sim.get_snapshot()
 
@@ -123,7 +126,7 @@ def test_snapshots_are_decoupled_from_state(so101_model):
     model = so101_model
     dt = 0.001
 
-    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
+    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
     sim.tick()
     snapshot = sim.get_snapshot()
     sim.tick()
@@ -134,7 +137,7 @@ def test_snapshot_is_frozen(so101_model):
     dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, dt, controllers.zero_control_policy)
+    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
 
     start_snapshot = sim.get_snapshot()
     with pytest.raises(FrozenInstanceError):

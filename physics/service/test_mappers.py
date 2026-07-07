@@ -5,6 +5,7 @@ from roboremote.arm.v1 import arm_pb2 as pb
 from service import mappers
 from sim.simulator import SimSnapshot, Simulator
 from sim import status
+from dataclasses import dataclass, replace
 import datetime
 
 def test_get_joint_type(so101_model):
@@ -76,12 +77,20 @@ def test_snapshot_to_armstate_defaults(so101_model):
 def test_snapshot_to_armstate_targets(so101_model):
     model: pin.Model = so101_model
     dt = 0.001
-    sim = Simulator(model, dt)
-
     joint_q = 0.1*np.ones(model.nq)
-    sim.active_target = joint_q
-    snap: SimSnapshot = sim.get_snapshot()
-    arm_state: pb.ArmState = mappers.snapshot_to_arm_state(snap)
+
+    base = SimSnapshot(
+        t=0.0, 
+        q=np.zeros(model.nq), 
+        v=np.zeros(model.nv), 
+        tau=np.zeros(model.nv), 
+        ee_pose=pin.SE3.Identity(), 
+        sim_status=status.SimStatus.IDLE, 
+        active_mode=status.ControlMode.GRAVITY_COMP, 
+        active_target=None)
+    
+    snap_joint = replace(base, active_mode=status.ControlMode.JOINT_PD_COMPENSATED, active_target=joint_q)
+    arm_state: pb.ArmState = mappers.snapshot_to_arm_state(snap_joint)
     assert arm_state.WhichOneof("active_target") == "joint_target"
     assert np.array_equal(arm_state.joint_target.q, joint_q)
 
@@ -89,9 +98,9 @@ def test_snapshot_to_armstate_targets(so101_model):
     theta = np.pi/2
     cartesian_pose: pin.SE3 = pin.SE3(pin.utils.rotate('z', theta), p)
     quat = pin.Quaternion(cartesian_pose.rotation)
-    sim.active_target = cartesian_pose
-    snap: SimSnapshot = sim.get_snapshot()
-    arm_state: pb.ArmState = mappers.snapshot_to_arm_state(snap)
+    
+    snap_cartesian  = replace(base, active_mode=status.ControlMode.TASK_PD_COMPENSATED, active_target=cartesian_pose)
+    arm_state: pb.ArmState = mappers.snapshot_to_arm_state(snap_cartesian)
     assert arm_state.WhichOneof("active_target") == "cartesian_target"
     assert np.array_equal(np.array([arm_state.cartesian_target.x, arm_state.cartesian_target.y, arm_state.cartesian_target.z]), p)
     assert np.array_equal(

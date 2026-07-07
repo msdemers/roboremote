@@ -553,3 +553,27 @@ follow, and they are **not** the same fix:
 - The container gap is a known, bounded change scoped to Phase 3, where the
   compose/Dockerfiles are edited anyway — not a lurking unknown.
 - Distribution strategy is recorded, so it isn't rediscovered per service.
+
+---
+
+## ADR-018: Setpoint Smoothing Is Out of Scope for the Sidecar
+
+**Status:** Accepted
+
+**Context:**
+A mid-mode `SetTarget` steps the setpoint, and thus commanded torque. Smoothing
+goal→command would avoid the jerk, but it needs its own tick-evolving state and
+is a higher-level control concern (trajectory generation, optimal/agentic
+policy) — not physics.
+
+**Decision:**
+The sidecar stays physics-only: `(q, v, setpoint) → tau`. It holds a single
+target (goal == commanded setpoint); `SetTarget` writes it directly. Reference
+shaping / trajectory smoothing is deferred to a future control layer above the
+sidecar.
+
+**Consequences:**
+- One `active_target` field, no evolving second state; wire and snapshot keep a
+  single setpoint.
+- Setpoint step changes (and resulting torque steps) are the caller's concern.
+- Preserves the pure `state → tau` policy shape.
