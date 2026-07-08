@@ -83,3 +83,7 @@ class Simulator:
                 self.controller.mode, 
                 None if self.controller.target is None else self.controller.target.copy()
             )
+
+    def set_controller(self, controller: controllers.Controller) -> None:
+        with self._lock:
+            self.controller = controller
