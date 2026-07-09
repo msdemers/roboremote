@@ -19,6 +19,8 @@ _MODE_MAP = {
     status.ControlMode.JOINT_PD_RAW: pb.CONTROL_MODE_JOINT_PD_RAW,
 }
 
+_MODE_MAP_INV = {v: k for k, v in _MODE_MAP.items()}
+
 def get_joint_type(joint: pin.JointModel) -> pb.JointInfo.JointType:
     """
     Maps a Pinocchio JointModel to its corresponding Protobuf JointType 
