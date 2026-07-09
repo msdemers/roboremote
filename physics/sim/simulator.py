@@ -87,3 +87,9 @@ class Simulator:
     def set_controller(self, controller: controllers.Controller) -> None:
         with self._lock:
             self.controller = controller
+
+    def reset_configuration(self):
+        with self._lock:
+            self.q = pin.neutral(self.model)
+            self.v = np.zeros(self.model.nv)
+            self.ee_pose = forward.end_effector_pose(self.model, self.data, self.q)

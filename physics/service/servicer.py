@@ -4,6 +4,7 @@ import grpc
 from sim.simulator import SimSnapshot, Simulator
 from sim import status
 from control import controller_factory
+import numpy as np
 from . import mappers
 import time, threading
 
@@ -49,4 +50,36 @@ class ArmSimServicer(pb_grpc.ArmSimServiceServicer):
         except ValueError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"unsupported control mode: {e}")
         
-        pb.SetControModeResponse()
+        return pb.SetControlModeResponse()
+
+    def SetTarget(self, request, context):
+        current_controller = self.sim.controller
+        target_type = request.WhichOneof("target")
+        new_target = None
+
+        match current_controller.mode:
+            case status.ControlMode.JOINT_PD_COMPENSATED | status.ControlMode.JOINT_PD_RAW:
+                if target_type != "joint_coordinates":
+                    context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"joint-space pd controllers require joint Coordinates")
+                new_target = np.array(request.joint_coordinates.q)
+                if len(new_target) != self.sim.model.nq:
+                    context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"target Coordinates.q has nq = {len(new_target)} but expected model.nq = {self.sim.model.nq}")
+                self.sim.set_controller(
+                    controller_factory.controller_for(current_controller.mode, new_target)
+                )
+            case status.ControlMode.TASK_PD_COMPENSATED | status.ControlMode.TASK_PD_RAW:
+                if target_type != "cartesian_pose":
+                    context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"task-space pd controllers require CartesianPose")
+                new_target = mappers.cartesian_pose_to_se3(request.cartesian_pose)
+                self.sim.set_controller(
+                    controller_factory.controller_for(current_controller.mode, new_target)
+                )
+            case status.ControlMode.GRAVITY_COMP:
+                if target_type is not None:
+                    context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"control mode does not support targets") 
+                # no-op becasue gravity comp controller remains unchanged
+        return pb.SetTargetResponse()
+
+    def ResetConfiguration(self, request, context):
+        self.sim.reset_configuration()
+        return pb.ResetConfigurationResponse()

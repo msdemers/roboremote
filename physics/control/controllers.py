@@ -18,7 +18,7 @@ class GravityCompensationController:
 
 class JointPdController:
     mode = ControlMode.JOINT_PD_COMPENSATED
-    def __init__(self, target: np.ndarray, kp=50.0, kd=5.0):
+    def __init__(self, target: np.ndarray, kp=50.0, kd=0.0):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -28,7 +28,7 @@ class JointPdController:
 
 class JointRawPdController:
     mode = ControlMode.JOINT_PD_RAW
-    def __init__(self, target: np.ndarray, kp=50.0, kd=5.0):
+    def __init__(self, target: np.ndarray, kp=50.0, kd=0.0):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:

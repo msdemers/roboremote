@@ -87,6 +87,17 @@ def se3_to_cartesian_pose(se3: pin.SE3) -> pb.CartesianPose:
     return pb.CartesianPose(x=translation[0], y=translation[1], z=translation[2],
                             qx=quaternion.x, qy=quaternion.y, qz=quaternion.z, qw=quaternion.w)
 
+def cartesian_pose_to_se3(cartesian_pose: pb.CartesianPose) -> pin.SE3:
+    translation = np.array([cartesian_pose.x, cartesian_pose.y, cartesian_pose.z])
+    quat = pin.Quaternion(np.array([
+        cartesian_pose.qx,
+        cartesian_pose.qy,
+        cartesian_pose.qz,
+        cartesian_pose.qw
+    ]))
+    quat.normalize()
+    return pin.SE3(quat.matrix(), translation)
+
 def snapshot_to_arm_state(snap: SimSnapshot) -> pb.ArmState:
     arm_state = pb.ArmState(
         status=_STATUS_MAP[snap.sim_status],
