@@ -409,6 +409,8 @@ Task-PD-Compensated).
   (`SetTarget` vs active mode).
 - Mode switches are always safe regardless of client timing.
 - Supersedes the `SetJointTarget`/`SetCartesianTarget` split in ADR-012.
+- Clarified by ADR-019: "compensated" means *full inverse-dynamics*
+  compensation (Coriolis + gravity via computed torque), not gravity-only.
 
 ---
 
@@ -577,3 +579,36 @@ sidecar.
   single setpoint.
 - Setpoint step changes (and resulting torque steps) are the caller's concern.
 - Preserves the pure `state → tau` policy shape.
+
+---
+
+## ADR-019: Control Laws — Computed-Torque and Inertia-Weighted PD
+
+**Status:** Accepted
+
+**Context:**
+Fixed PD gains in torque space (`τ = kp·e − kd·v`) are scaled per-joint by
+`M⁻¹`, so a gain safe on one joint is unstable on another. At `dt=1ms` the
+lightest joint (gripper) diverged to NaN within a few ticks.
+
+**Decision:**
+Both joint controllers command a desired acceleration
+`a_des = kp·e − kd·v` (`e = pin.difference(q, target)`) and map it to torque
+via Pinocchio inverse-dynamics recursions:
+- **JOINT_PD_COMPENSATED** — computed torque:
+  `τ = rnea(q, v, a_des) = M·a_des + C·v + g`. Feedback-linearizes to
+  `ë + kd·ė + kp·e = 0`.
+- **JOINT_PD_RAW** — inertia-weighted PD, no bias comp:
+  `τ = rnea(q,v,a_des) − nonLinearEffects(q,v) = M·a_des`. Stable but droops
+  under gravity.
+
+`nonLinearEffects` (`C·v + g`) is exactly the difference: COMPENSATED = RAW + bias.
+
+**Consequences:**
+- Gains are inertia-independent — one scalar pair works for all joints and both
+  laws. `kp = ωn²`, `kd = 2ζωn`; chosen `ωn=50, ζ=1` (`ωn·dt=0.05 ≪ 2`).
+- No dense `M` formed — O(n) recursions, sidesteps `crba`'s upper-triangular
+  symmetrization.
+- RAW vs COMPENSATED is principled: uniform stability from M-weighting (both),
+  position-holding from bias cancellation (COMPENSATED only).
+- Task-space (`TASK_PD_*`) will need `crba`/operational-space inertia; deferred.
