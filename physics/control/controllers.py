@@ -18,19 +18,22 @@ class GravityCompensationController:
 
 class JointPdController:
     mode = ControlMode.JOINT_PD_COMPENSATED
-    def __init__(self, target: np.ndarray, kp=50.0, kd=0.0):
+    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
-        gravity_comp = dyn.gravity_compensation(model, data, q)
         q_error = pin.difference(model, q, self.target)
-        return self.kp*q_error - self.kd*v + gravity_comp
+        a_des = self.kp*q_error - self.kd*v
+        return pin.rnea(model, data, q, v, a_des)
 
 class JointRawPdController:
     mode = ControlMode.JOINT_PD_RAW
-    def __init__(self, target: np.ndarray, kp=50.0, kd=0.0):
+    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
         q_error = pin.difference(model, q, self.target)
-        return self.kp*q_error - self.kd*v
+        a_des = self.kp*q_error - self.kd*v
+        tau_full = pin.rnea(model, data, q, v, a_des)
+        b = pin.nonLinearEffects(model, data, q, v) # coriolis and gravity effects
+        return tau_full - b

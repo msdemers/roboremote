@@ -9,7 +9,8 @@ for i, envelope in enumerate(stub.Subscribe(pb.SubscribeRequest())):
         nq = envelope.descriptor.nq
         continue
     st = envelope.state
-    print(i, st.active_mode, "target type:", st.WhichOneof("active_target"), "q =", list(st.q.q))
+    print(i, "mode:", st.active_mode, st.WhichOneof("active_target"))
+    print("    q =", list(st.q.q))
 
     # if we've been running for a sec
     if i == 5:
