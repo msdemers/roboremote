@@ -27,6 +27,9 @@ for i in range(5):
     q = pin.randomConfiguration(model)
     gripper_frame_id = model.getFrameId(end_effector_frame)
     J = pin.computeFrameJacobian(model, data, q, gripper_frame_id)
-
     print(f"--- Jacobian at q = {q}")
     pretty_print(J, 4, 12)
+    M_inv = pin.computeMinverse(model, data, q)
+    print(f"--- inverse(Mass) at q = {q}")
+    pretty_print(M_inv, 4, 12)
+    
