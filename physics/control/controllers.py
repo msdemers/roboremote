@@ -60,9 +60,6 @@ class TaskRawPdController:
 
         Lambda = np.linalg.inv(A) # compute Lambda = inv(A)
         
-        # control in the task space
-        F = Lambda @ a_x 
-
         # construct damping in the null-space
         J_conj_T = Lambda @ J_pos @ M_inv
         N = np.eye(model.nv) - (J_pos.T @ J_conj_T) # the null-space projector
@@ -70,7 +67,53 @@ class TaskRawPdController:
         N[:,model.nv-1] = 0.0
         N[model.nv-1,:] = 0.0
         tau_null = N @ (-self.kn*v) # damping in the null space
+
+        # control in the task space with target accel only
+        F = Lambda @ a_x
+
         tau = J_pos.T @ F + tau_null
+        return tau
+
+class TaskPdController:
+    mode = ControlMode.TASK_PD_COMPENSATED
+    def __init__(self, target: pin.SE3, kp=2500.0, kd=100.0, lam=0.3, kn=0.015):
+        self.target = target
+        self.kp, self.kd = kp, kd
+        self.lam = lam
+        self.kn = kn
+    def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
+        ee_frame_id = model.getFrameId(forward.EE_FRAME)
+        J = pin.computeFrameJacobian(model, data, q, ee_frame_id, pin.LOCAL_WORLD_ALIGNED)
+        # for now, task space control is positional control only (no attitude control)
+        J_pos = J[:3]
+        e_x = self.target.translation - forward.end_effector_pose(model, data, q).translation
+        v_x = J_pos @ v
+        a_x = self.kp*e_x - self.kd*v_x
+
+        M_inv = pin.computeMinverse(model, data, q)
+        A = J_pos @ M_inv @ J_pos.T + (self.lam)**2*np.eye(3)
+
+        Lambda = np.linalg.inv(A) # compute Lambda = inv(A)
+        
+        # construct damping in the null-space
+        J_conj_T = Lambda @ J_pos @ M_inv
+        N = np.eye(model.nv) - (J_pos.T @ J_conj_T) # the null-space projector
+        # decouple null-space damping from the light and slow-moving gripper length
+        N[:,model.nv-1] = 0.0
+        N[model.nv-1,:] = 0.0
+        tau_null = N @ (-self.kn*v) # damping in the null space
+
+        # compute d(J)/dt * v (Convective Acceleration)
+        pin.forwardKinematics(model, data, q, v, np.zeros(model.nv)) # zero out accel effect from dd(q)/dtt
+        dJv = pin.getFrameClassicalAcceleration(model, data, ee_frame_id, pin.LOCAL_WORLD_ALIGNED).linear
+
+        # control in the task space with target accel and convective correction
+        F = Lambda @ (a_x - dJv)
+
+        # compensation for global non linear effects (Coriolis, gyroscopic, gravity biases)
+        b = pin.nonLinearEffects(model, data, q, v)
+
+        tau = J_pos.T @ F + tau_null + b
         return tau
 
 
