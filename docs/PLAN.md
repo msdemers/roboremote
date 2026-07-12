@@ -49,9 +49,9 @@
 - [x] Implement sim loop (Simulator owns model/data/state; tick() advances
       integrator + injected policy; run()/stop() paced via threading.Event; void
       tick + get_snapshot() producer/consumer split; drives own clock per ADR-007)
-- [ ] Implement control policies (task-space EE PD, compensated PD) — composable
+- [x] Implement control policies (task-space EE PD, compensated PD) — composable
       torque terms summed into behaviors (see ADR pending)
-- [ ] Implement gRPC server (physics side)
+- [x] Implement gRPC server (physics side)
 - [ ] Containerize and verify headless
       - [ ] Durable generated-code distribution (ADR-017): package `roboremote-proto`
             as an installable dep; set Docker build context to repo root so stubs
