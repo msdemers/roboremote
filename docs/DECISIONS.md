@@ -629,9 +629,16 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
 **Decision:**
 - **Position-only, 3-DOF task** for V1 (Euclidean error, no SO(3)). Orientation
   deferred to a specific workspace need.
-- **Khatib operational space, `τ = JᵀF`:**
-  - RAW: `F = Λ·a_x` — op-space-inertia-weighted, no bias (droops under gravity).
-  - COMPENSATED: `F = Λ·(a_x − J̇v + J M⁻¹·nle)` (= `Λ a_x + μ + p`) — full bias.
+- **Operational space (Khatib), `τ = JᵀF + τ_null (+ b)`:**
+  - RAW: `F = Λ·a_x`, `τ = JᵀF + τ_null` — op-space-inertia-weighted, no bias
+    (droops under gravity).
+  - COMPENSATED: inverse-dynamics OSC — `F = Λ·(a_x − J̇v)`,
+    `τ = JᵀF + τ_null + b` with `b = nle = C·v + g`. Cancels the bias *directly
+    in joint space* rather than projecting it through task space (the equivalent
+    Khatib form `F = Λ(a_x − J̇v + J M⁻¹·nle)`, `τ = JᵀF`). Same task result
+    `ẍ = a_x`, but this variant also compensates **null-space and gripper**
+    gravity/Coriolis (no null-space droop; the jaw gravity-holds) and avoids the
+    `J M⁻¹·nle` round-trip projection.
   - `a_x = kp·e_x − kd·ẋ`, `Λ = (J_pos M⁻¹ J_posᵀ + λ²I)⁻¹`.
 - **Constant Tikhonov damping** `λ` for singularity robustness.
 - **Redundancy via null-space damping only:** `τ_null = N(−kn·v)`,
