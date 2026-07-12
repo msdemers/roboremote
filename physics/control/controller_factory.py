@@ -9,6 +9,8 @@ def controller_for(mode: ControlMode, target: np.ndarray | pin.SE3 | None =None)
             return controllers.GravityCompensationController()
         case ControlMode.JOINT_PD_COMPENSATED:
             return controllers.JointPdController(target)
+        case ControlMode.TASK_PD_COMPENSATED:
+            return controllers.TaskPdController(target)
         case ControlMode.JOINT_PD_RAW:
             return controllers.JointRawPdController(target)
         case ControlMode.TASK_PD_RAW:

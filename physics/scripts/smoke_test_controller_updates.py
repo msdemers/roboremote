@@ -25,13 +25,15 @@ for i, envelope in enumerate(stub.Subscribe(pb.SubscribeRequest())):
     if i == 15:
         stub.SetTarget(pb.SetTargetRequest(joint_coordinates=pb.Coordinates(q=list(0.1*np.ones(nq)))))
     if i == 30:
-        stub.SetControlMode(pb.SetControlModeRequest(mode=pb.CONTROL_MODE_TASK_PD_RAW))
+        stub.SetControlMode(pb.SetControlModeRequest(mode=pb.CONTROL_MODE_TASK_PD_COMPENSATED))
     if i == 40:
         stub.SetTarget(pb.SetTargetRequest(
             cartesian_pose=pb.CartesianPose(x=0.2, y=0.2, z=0.2, qx=0.0, qy=0.0, qz=0.0, qw=1.0)))
-    if i > 50:
-        stub.SetControlMode(pb.SetControlModeRequest(mode=pb.CONTROL_MODE_GRAVITY_COMP))
+    if i == 50:
+        stub.SetControlMode(pb.SetControlModeRequest(mode=pb.CONTROL_MODE_TASK_PD_RAW))
     if i > 60:
-        stub.ResetConfiguration(pb.ResetConfigurationRequest())
+        stub.SetControlMode(pb.SetControlModeRequest(mode=pb.CONTROL_MODE_GRAVITY_COMP))
     if i > 70:
+        stub.ResetConfiguration(pb.ResetConfigurationRequest())
+    if i > 75:
         break

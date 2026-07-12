@@ -69,3 +69,16 @@ def test_raw_task_pd_zero_torque_at_target(so101_model):
     pdContr = controllers.TaskRawPdController(target=ee_target)
     tau = pdContr.compute(model, data, q_des, v)
     assert np.allclose(tau, np.zeros(model.nv)), "raw task pd should generate zero effort at the target pose"
+
+def test_compensated_task_pd_hold_at_target_with_gravity(so101_model):
+    model: pin.Model = so101_model
+    data: pin.Data = model.createData()
+
+    q_des = 0.3*np.ones(model.nq) # a non-neutral but deterministic pose
+    v = np.zeros(model.nv)
+    ee_target: pin.SE3 = forward.end_effector_pose(model, data, q_des)
+
+    pdContr = controllers.TaskPdController(target=ee_target)
+    tau = pdContr.compute(model, data, q_des, v)
+    g = pin.computeGeneralizedGravity(model, data, q_des)
+    assert np.allclose(tau, g), "compensated task pd should offset gravity at the target pose"
