@@ -11,5 +11,7 @@ def controller_for(mode: ControlMode, target: np.ndarray | pin.SE3 | None =None)
             return controllers.JointPdController(target)
         case ControlMode.JOINT_PD_RAW:
             return controllers.JointRawPdController(target)
+        case ControlMode.TASK_PD_RAW:
+            return controllers.TaskRawPdController(target)
         case _:
             raise ValueError(f"unsupported control mode: {mode}")

@@ -1,6 +1,7 @@
 import pinocchio as pin
 import numpy as np
 from . import controllers
+from kinematics import forward
 
 def test_compensated_joint_pd_hold_at_target_with_gravity(so101_model):
     model: pin.Model = so101_model
@@ -56,3 +57,15 @@ def test_compendated_joint_pd_weights_error_by_inertia(so101_model):
     M = np.triu(M) + np.triu(M, 1).T # build full matrix rep
     expected = M @ (pdContr.kp*error) + pin.computeGeneralizedGravity(model, model.createData(), q_current)
     assert np.allclose(tau, expected)
+
+def test_raw_task_pd_zero_torque_at_target(so101_model):
+    model: pin.Model = so101_model
+    data: pin.Data = model.createData()
+
+    q_des = 0.3*np.ones(model.nq) # a non-neutral but deterministic pose
+    v = np.zeros(model.nv)
+    ee_target: pin.SE3 = forward.end_effector_pose(model, data, q_des)
+
+    pdContr = controllers.TaskRawPdController(target=ee_target)
+    tau = pdContr.compute(model, data, q_des, v)
+    assert np.allclose(tau, np.zeros(model.nv)), "raw task pd should generate zero effort at the target pose"

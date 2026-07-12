@@ -47,7 +47,8 @@ class TaskRawPdController:
         self.lam = lam
         self.kn = kn
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
-        J = pin.computeFrameJacobian(model, data, q, forward.EE_FRAME, pin.LOCAL_WORLD_ALIGNED)
+        ee_frame_id = model.getFrameId(forward.EE_FRAME)
+        J = pin.computeFrameJacobian(model, data, q, ee_frame_id, pin.LOCAL_WORLD_ALIGNED)
         # for now, task space control is positional control only (no attitude control)
         J_pos = J[:3]
         e_x = self.target.translation - forward.end_effector_pose(model, data, q).translation
