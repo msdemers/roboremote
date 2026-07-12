@@ -612,3 +612,39 @@ via Pinocchio inverse-dynamics recursions:
 - RAW vs COMPENSATED is principled: uniform stability from M-weighting (both),
   position-holding from bias cancellation (COMPENSATED only).
 - Task-space (`TASK_PD_*`) will need `crba`/operational-space inertia; deferred.
+
+---
+
+## ADR-020: Task-Space Control — Position-Only Operational Space (V1)
+
+**Status:** Accepted (RAW verified live; COMPENSATED designed, implementation pending)
+
+**Context:**
+SO101 is 5-DOF + gripper (`nq=6`). The gripper's EE-frame Jacobian column is
+*identically zero* (verified across random configs), so the frame Jacobian is
+rank ≤ 5 and `J M⁻¹ Jᵀ` is singular for a full 6-D pose task — arbitrary SE(3)
+is unreachable. Joints 2–4 are parallel-axis, adding internal singularities.
+The arm also has genuine 2-DOF redundancy for a 3-D task.
+
+**Decision:**
+- **Position-only, 3-DOF task** for V1 (Euclidean error, no SO(3)). Orientation
+  deferred to a specific workspace need.
+- **Khatib operational space, `τ = JᵀF`:**
+  - RAW: `F = Λ·a_x` — op-space-inertia-weighted, no bias (droops under gravity).
+  - COMPENSATED: `F = Λ·(a_x − J̇v + J M⁻¹·nle)` (= `Λ a_x + μ + p`) — full bias.
+  - `a_x = kp·e_x − kd·ẋ`, `Λ = (J_pos M⁻¹ J_posᵀ + λ²I)⁻¹`.
+- **Constant Tikhonov damping** `λ` for singularity robustness.
+- **Redundancy via null-space damping only:** `τ_null = N(−kn·v)`,
+  `N = I − Jᵀ(Λ J M⁻¹)`.
+- **Gripper decoupled from `τ_null`** (zero row + column of `N` for the gripper
+  DOF): its zero task-Jacobian + lightest inertia would otherwise dominate the
+  `kn·dt/M < 2` stability bound; `kn` is now bounded by the lightest *arm* joint.
+- **Gains (provisional):** `kp=2500, kd=100` (`ωn=50, ζ=1`, transfer directly via
+  unit-mass decoupling); `λ=0.3`; `kn≈0.015`.
+
+**Consequences / deferred:**
+- One gain set serves RAW and COMPENSATED (unit-mass decoupling).
+- Deferred: full-pose/orientation control; **variable damping `λ(σ_min)`**
+  (Nakamura/Wampler, activates only near singularities); null-space posture task;
+  inertia-weighted null-space damping; gripper as a real open/close actuator.
+- Gains are hardcoded defaults; a tuning/config surface is future work.

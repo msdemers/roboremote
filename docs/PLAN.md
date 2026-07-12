@@ -113,3 +113,17 @@
       (gravity comp / PD add effective damping). Revisit a higher-order or substepped
       integrator (RK4, semi-implicit substepping) if aggressive/long free-running sim
       is needed.
+- [ ] Task-space orientation / full-pose control (V1 is position-only 3-DOF per
+      ADR-020; arm is kinematically deficient for SE(3)). Add on a specific
+      workspace need with reduced-orientation or non-deficient handling.
+- [ ] Variable damping λ(σ_min) for the operational-space inertia (Nakamura/Wampler
+      damped least squares; V1 uses constant λ per ADR-020) — removes constant-λ
+      tracking bias in the well-conditioned interior.
+- [ ] Null-space posture task + inertia-weighted null-space damping (V1 uses plain
+      velocity damping projected into the null space per ADR-020).
+- [ ] Pinocchio compute/caching "realization layer": a Stage-style
+      (position/velocity/acceleration, à la Simbody) wrapper over `data` that
+      sequences the recursions once and enforces cache validity — Pinocchio caches
+      like Simbody but without invalidation guardrails. Removes redundant passes
+      (e.g. the extra end_effector_pose FK). Scoped as a kinematics/ + dynamics/
+      refactor.
