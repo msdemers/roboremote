@@ -41,6 +41,19 @@ def test_cartesian_target_rejected_in_joint_pd(so101_model):
     with pytest.raises(Aborted): servicer.SetTarget(req, ctx)
     assert ctx.code == grpc.StatusCode.INVALID_ARGUMENT
 
+def test_joint_target_rejected_in_task_pd(so101_model):
+    model = so101_model
+    sim = Simulator(model, dt=0.001)
+    servicer = ArmSimServicer(sim, "so101", "v0")
+    ctx = FakeContext()
+    sim.set_controller(controller_factory.controller_for(
+        status.ControlMode.TASK_PD_COMPENSATED, sim.ee_pose
+    ))
+    # try to set joint coordinates in incompatible task pd mode
+    req = pb.SetTargetRequest(joint_coordinates=pb.Coordinates(q=[0.1]*model.nq))
+    with pytest.raises(Aborted): servicer.SetTarget(req, ctx)
+    assert ctx.code == grpc.StatusCode.INVALID_ARGUMENT
+
 def test_joint_target_too_long_gets_rejected(so101_model):
     model = so101_model
     sim = Simulator(model, dt=0.001) 
@@ -88,3 +101,20 @@ def test_set_joint_target_completes(so101_model):
     res = servicer.SetTarget(req, ctx)
     assert isinstance(res, pb.SetTargetResponse)
     assert np.allclose(sim.controller.target, q_des)
+
+def test_set_cartesian_target_completes(so101_model):
+    model = so101_model
+    sim = Simulator(model, dt=0.001)
+    servicer = ArmSimServicer(sim, "so101", "v0")
+    ctx = FakeContext()
+    sim.set_controller(controller_factory.controller_for(
+        status.ControlMode.TASK_PD_COMPENSATED, sim.ee_pose
+    )) 
+    # try to set legit cartesian end effector target pose
+    req = pb.SetTargetRequest(cartesian_pose=pb.CartesianPose(
+        x=0.0, y=0.0, z=0.0,
+        qx=0.0, qy=0.0, qz=0.0, qw=1.0
+    ))
+    res = servicer.SetTarget(req,ctx)
+    assert isinstance(res, pb.SetTargetResponse)
+    assert sim.controller.target.isApprox(pin.SE3.Identity())
