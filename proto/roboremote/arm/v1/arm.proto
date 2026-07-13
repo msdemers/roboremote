@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package roboremote.arm.v1;
 
-option go_package = "github.com/msdemers/roboremote/proto/gen/go/arm/v1";
-
 // --- Value Types 
 
 message Coordinates {

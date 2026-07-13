@@ -1,5 +1,6 @@
 .env
 **/__pycache__
 **/*.pyc
-proto/gen/
+proto/gen/python/
+proto/gen/go/roboremote/
 physics/.venv
