@@ -52,11 +52,9 @@
 - [x] Implement control policies (task-space EE PD, compensated PD) — composable
       torque terms summed into behaviors (see ADR pending)
 - [x] Implement gRPC server (physics side)
-- [ ] Containerize and verify headless
-      - [ ] Durable generated-code distribution (ADR-017): package `roboremote-proto`
-            as an installable dep; set Docker build context to repo root so stubs
-            land in the image. (Interim local PYTHONPATH in place.)
-- [ ] Commit: "feat: physics sidecar v1"
+- [x] Commit: physics sidecar v1 (control + gRPC complete, tested)
+      - Containerization + headless verify deferred and batched into Phase 5 (done
+        once for all services; ADR-017 durable gen-code distribution lands there).
 
 ## Phase 4: Sim Server
 - [ ] Implement gRPC server skeleton
@@ -66,7 +64,6 @@
 - [ ] Implement Subscribe RPC handler (server-stream; descriptor-first, ADR-010)
 - [ ] Implement unary command handlers: SetControlMode, SetTarget,
       ResetConfiguration (ADR-008, ADR-013)
-- [ ] Containerize and verify
 - [ ] Commit: "feat: sim server v1"
 
 ## Phase 5: TUI Client
@@ -76,8 +73,18 @@
 - [ ] Implement joint state monitor panel
 - [ ] Implement control input monitor panel
 - [ ] Implement control policy switcher
-- [ ] Containerize with TTY support
 - [ ] Commit: "feat: tui client v1"
+
+### Containerization (batched — all services; was split across Phases 3–5)
+- [ ] Durable generated-code distribution (ADR-017): package `roboremote-proto` as an
+      installable Python dep; resolve Go `proto/gen/go` via `go.work`/module for
+      server + tui; set Docker build context to repo root so stubs land in images.
+- [ ] Physics sidecar image (headless — Pinocchio needs no display; MODEL_PATH env)
+- [ ] Sim server image (scratch-based, CGO-free per ADR-002)
+- [ ] TUI client image (TTY support)
+- [ ] docker-compose.yml: server↔sidecar internal network, env-var addresses (ADR-002/006)
+- [ ] Verify `docker compose up` brings the full stack up cleanly
+- [ ] Commit: "build: containerize full stack"
 
 ## Phase 6: Dev Visualizer (Rerun)
 - [ ] Install Rerun Python SDK in physics environment
