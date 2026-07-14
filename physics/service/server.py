@@ -5,6 +5,8 @@ import pinocchio as pin
 from sim.simulator import Simulator
 from concurrent import futures
 import grpc
+from grpc_reflection.v1alpha import reflection
+from roboremote.arm.v1 import arm_pb2
 from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
 from .servicer import ArmSimServicer
 
@@ -12,6 +14,7 @@ from .servicer import ArmSimServicer
 def serve():
     port = os.getenv("PHYSICS_PORT", "50052")
     bind_address = f"[::]:{port}"
+    bind_address = os.getenv("PHYSICS_ADDR", "[::]:50052")
     model_path = pathlib.Path(__file__).parents[2] / "models/so101/so101_new_calib.urdf"
     model_name = "SO-101 Manipulator Arm"
     model_version = "placeholder for hash"
@@ -26,6 +29,13 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=4))
     pb_grpc.add_ArmSimServiceServicer_to_server(ArmSimServicer(sim, model_name, model_version), server)
     server.add_insecure_port(bind_address)
+
+    # register schema in order to support reflection service
+    service_names = (
+        arm_pb2.DESCRIPTOR.services_by_name["ArmSimService"].full_name,
+        reflection.SERVICE_NAME,
+    )
+    reflection.enable_server_reflection(service_names, server)
 
     # service lifecycle
     server.start()
