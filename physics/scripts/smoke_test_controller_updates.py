@@ -6,7 +6,7 @@ def pretty_print_row(row_vec, sig_figs=4, width=12, prefix=""):
     formatted_row = [f"{item:> {width}.{sig_figs}g}" for item in row_vec]
     print(prefix + " ".join(formatted_row))
 
-stub = pb_grpc.ArmSimServiceStub(grpc.insecure_channel("localhost:50051"))
+stub = pb_grpc.ArmSimServiceStub(grpc.insecure_channel("localhost:50052"))
 nq = None
 for i, envelope in enumerate(stub.Subscribe(pb.SubscribeRequest())):
     if envelope.WhichOneof("payload") == "descriptor":
