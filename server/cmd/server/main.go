@@ -2,15 +2,19 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
 
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/status"
 )
 
 type armServer struct {
@@ -23,6 +27,38 @@ func (s *armServer) SetControlMode(
 	req *armv1.SetControlModeRequest,
 ) (*armv1.SetControlModeResponse, error) {
 	return s.sidecar.SetControlMode(ctx, req)
+}
+
+func (s *armServer) Subscribe(
+	req *armv1.SubscribeRequest,
+	stream grpc.ServerStreamingServer[armv1.StreamEnvelope],
+) error {
+	ctx, cancel := context.WithCancel(stream.Context())
+	defer cancel()
+
+	upstream, err := s.sidecar.Subscribe(ctx, req)
+	if err != nil {
+		return err
+	}
+
+	for {
+		msg, err := upstream.Recv()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				log.Println("physics sidecar has ended the stream")
+				return nil
+			}
+			if status.Code(err) == codes.Canceled {
+				log.Println("client disconnected")
+				return nil
+			}
+			log.Printf("stream error: %v\n", err)
+			return err
+		}
+		if err = stream.Send(msg); err != nil {
+			return err
+		}
+	}
 }
 
 func main() {
