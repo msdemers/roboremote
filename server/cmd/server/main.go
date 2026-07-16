@@ -41,11 +41,23 @@ func (s *armServer) ResetConfiguration(
 	return s.sidecar.ResetConfiguration(ctx, req)
 }
 
+func decimationFor(rate armv1.StreamRate) int {
+	switch rate {
+	case armv1.StreamRate_STREAM_RATE_120:
+		return 1
+	case armv1.StreamRate_STREAM_RATE_30:
+		return 4
+	default:
+		return 2 // everything else maps to the default 60 Hz
+	}
+}
+
 func (s *armServer) Subscribe(
 	req *armv1.SubscribeRequest,
 	stream grpc.ServerStreamingServer[armv1.StreamEnvelope],
 ) error {
-	desc, frames, unsubscribe := s.hub.Subscribe()
+	n := decimationFor(req.GetRate())
+	desc, frames, unsubscribe := s.hub.Subscribe(n)
 	defer unsubscribe()
 
 	if err := stream.Send(desc); err != nil { // always send model descriptor as first frame to client

@@ -7,8 +7,10 @@ import (
 )
 
 type subscriber struct {
-	frames chan *armv1.StreamEnvelope
-	desc   chan *armv1.StreamEnvelope
+	frames      chan *armv1.StreamEnvelope
+	desc        chan *armv1.StreamEnvelope
+	nDecimation int // decimation factor
+	count       int // frames since last deliery
 }
 
 type Hub struct {
@@ -53,6 +55,12 @@ func (h *Hub) Run() {
 			}
 			// fan out frame to all live clients
 			for s := range subs {
+				// count-based decimation
+				s.count++
+				if s.count < s.nDecimation {
+					continue
+				}
+				s.count = 0
 				// latest-wins send
 				select {
 				case s.frames <- frame: // s.frames was empty. give it the fresh frame
@@ -69,10 +77,12 @@ func (h *Hub) Run() {
 	}
 }
 
-func (h *Hub) Subscribe() (desc *armv1.StreamEnvelope, frames <-chan *armv1.StreamEnvelope, unsubscribe func()) {
+func (h *Hub) Subscribe(nDecimation int) (desc *armv1.StreamEnvelope, frames <-chan *armv1.StreamEnvelope, unsubscribe func()) {
 	s := &subscriber{
-		frames: make(chan *armv1.StreamEnvelope, 1), // latest-wins snapshot slot
-		desc:   make(chan *armv1.StreamEnvelope, 1), //
+		frames:      make(chan *armv1.StreamEnvelope, 1), // latest-wins snapshot slot
+		desc:        make(chan *armv1.StreamEnvelope, 1), //
+		nDecimation: nDecimation,
+		count:       0,
 	}
 	h.register <- s                            // blocks until h.run() accepts
 	desc = <-s.desc                            // run() provides the cached descriptor
