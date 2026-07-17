@@ -56,15 +56,20 @@
       - Containerization + headless verify deferred and batched into Phase 5 (done
         once for all services; ADR-017 durable gen-code distribution lands there).
 
-## Phase 4: Sim Server
-- [ ] Implement gRPC server skeleton
-- [ ] Implement state relay pump (subscribe to sidecar stream; per ADR-007 Go is a
+## Phase 4: Sim Server (Complete)
+- [x] Implement gRPC server skeleton
+- [x] Implement state relay pump (subscribe to sidecar stream; per ADR-007 Go is a
       pure relay, not an integrator)
-- [ ] Implement state broadcaster (fan-out to N clients)
-- [ ] Implement Subscribe RPC handler (server-stream; descriptor-first, ADR-010)
-- [ ] Implement unary command handlers: SetControlMode, SetTarget,
-      ResetConfiguration (ADR-008, ADR-013)
-- [ ] Commit: "feat: sim server v1"
+- [x] Implement state broadcaster (fan-out to N clients) — channel-serialized hub
+      (server/internal/relay), latest-value-wins per-subscriber slots (ADR-009)
+- [x] Implement Subscribe RPC handler (server-stream; descriptor-first, ADR-010)
+- [x] Implement unary command handlers: SetControlMode, SetTarget,
+      ResetConfiguration (ADR-008, ADR-013) — verbatim forwards, bypass the hub
+- [x] Hub unit tests: fan-out + per-client decimation (barrier-synchronized, no sleeps)
+- [x] Committed as per-slice commits (not one "feat: sim server v1")
+- [ ] Deferred hardening (not v1-blocking): pump reconnection (sidecar restart →
+      hub goes silent today); graceful shutdown (signal handling + Run()/pump stop +
+      cancelable pump ctx — log.Fatalf currently skips defers)
 
 ## Phase 5: TUI Client
 - [ ] Initialize Bubble Tea app structure
