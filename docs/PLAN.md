@@ -72,18 +72,25 @@
       cancelable pump ctx — log.Fatalf currently skips defers)
 
 ## Phase 5: TUI Client
-- [ ] Initialize Bubble Tea app structure
-- [ ] Implement gRPC stream consumer
+- [x] Initialize Bubble Tea app structure — bubbletea/v2 + bubbles/v2 + lipgloss/v2;
+      `internal/app` split by Elm role (model/msgs/update/view/cmds), `internal/stream`
+      owns the gRPC bridge
+- [x] Implement gRPC stream consumer — goroutine+channel bridge (`stream.Connect`),
+      descriptor-gated 3-state lifecycle (Connecting/Streaming/Disconnected per
+      ADR-010's descriptor-first rule), live `sim_time` verified end-to-end against
+      a running server + physics sidecar
 - [ ] Implement connection status panel
 - [ ] Implement joint state monitor panel
 - [ ] Implement control input monitor panel
 - [ ] Implement control policy switcher
-- [ ] Commit: "feat: tui client v1"
+- [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)
-- [ ] Durable generated-code distribution (ADR-017): package `roboremote-proto` as an
-      installable Python dep; resolve Go `proto/gen/go` via `go.work`/module for
-      server + tui; set Docker build context to repo root so stubs land in images.
+- [ ] Durable generated-code distribution (ADR-017), remaining scope:
+  - [x] Go: `proto/gen/go` resolved via `go.work` for server + tui (landed during
+        Phase 5 tui setup, ahead of the batched containerization pass)
+  - [ ] Python: package `roboremote-proto` as an installable dependency
+  - [ ] Docker build context set to repo root so stubs land in images
 - [ ] Physics sidecar image (headless — Pinocchio needs no display; MODEL_PATH env)
 - [ ] Sim server image (scratch-based, CGO-free per ADR-002)
 - [ ] TUI client image (TTY support)

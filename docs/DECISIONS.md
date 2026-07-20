@@ -523,7 +523,8 @@ convention and serve both Go and Python consumers.
 
 ## ADR-017: Generated-Code Distribution Across Polyglot Services
 
-**Status:** Accepted (interim); durable step deferred to Phase 3
+**Status:** Accepted (interim); Go durable step complete, Python durable step
+still deferred to Phase 3
 
 **Context:**
 Generated stubs live at `proto/gen/{go,python}` — a sibling of `physics/`,
@@ -555,6 +556,9 @@ follow, and they are **not** the same fix:
 - The container gap is a known, bounded change scoped to Phase 3, where the
   compose/Dockerfiles are edited anyway — not a lurking unknown.
 - Distribution strategy is recorded, so it isn't rediscovered per service.
+- The Go durable step landed early: `tui` joined the root `go.work` during its own
+  setup (Phase 5), not held for the batched containerization pass — no `replace`
+  directives or version pins needed between `proto/gen/go`, `server`, and `tui`.
 
 ---
 
