@@ -1,20 +1,41 @@
 package main
 
 import (
-	"fmt"
+	"context"
+	"flag"
+	"log"
+	"os"
 
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
-	lipgloss "charm.land/lipgloss/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
+	"github.com/msdemers/roboremote/tui/internal/app"
 )
 
 func main() {
+	debug := flag.Bool("debug", false, "log to debug.log for troubleshooting")
+	flag.Parse()
 
-	// placeholders to verify go dependencies
-	var _ = armv1.StreamEnvelope{}
-	var _ = tea.Model(nil)
-	var _ = lipgloss.Blue
-	var _ = spinner.Model{}
-	fmt.Println("presence of initial go dependencies verified")
+	if *debug {
+		f, err := tea.LogToFile("debug.log", "debug")
+		if err != nil {
+			log.Fatalln("failed to configure tea logging")
+		}
+		defer f.Close()
+	}
+
+	relayAddr := os.Getenv("SERVER_ADDR")
+	if relayAddr == "" {
+		relayAddr = "localhost:50051"
+	}
+
+	streamrate := armv1.StreamRate_STREAM_RATE_UNSPECIFIED
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	p := tea.NewProgram(app.New(ctx, relayAddr, streamrate))
+
+	if _, err := p.Run(); err != nil {
+		log.Fatalf("shutting down: %v", err)
+	}
 }
