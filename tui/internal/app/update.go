@@ -22,6 +22,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.frames = msg.ch
 		return m, waitForSimFrame(m.frames)
 	case descriptorMsg:
+		if err := validateDescriptor(msg.descriptor); err != nil {
+			m.err = err
+			m.lifecycle = stateDisconnected
+			return m, nil
+		}
 		m.descriptor = msg.descriptor
 		m.lifecycle = stateStreaming
 		return m, waitForSimFrame(m.frames)
@@ -30,6 +35,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lifecycle = stateDisconnected
 			m.err = errors.New("received ArmState when expecting a ModelDescriptor")
 			m.frames = nil
+			return m, nil
+		}
+		if err := validateFrameShape(m.descriptor, msg.armState); err != nil {
+			m.err = err
+			m.lifecycle = stateDisconnected
 			return m, nil
 		}
 		m.armState = msg.armState
