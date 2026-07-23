@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"charm.land/bubbles/v2/table"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 )
 
@@ -27,6 +28,50 @@ func jointRows(desc *armv1.ModelDescriptor, state *armv1.ArmState) []jointRow {
 	}
 
 	return jRows
+}
+
+func cellAt(vals []float64, i int) string {
+	if i >= len(vals) {
+		return ""
+	}
+	return fmt.Sprintf("%.2f", vals[i])
+}
+
+func toTableRows(rows []jointRow) []table.Row {
+	var tableRows []table.Row
+	for _, jRow := range rows {
+		n := max(len(jRow.Coordinates), len(jRow.Velocities))
+		for i := 0; i < n; i++ {
+			rowLabel := ""
+			if i == 0 {
+				rowLabel = jRow.Name
+			}
+			tableRows = append(tableRows, table.Row{
+				rowLabel,
+				cellAt(jRow.Coordinates, i),
+				cellAt(jRow.Velocities, i),
+				cellAt(jRow.Efforts, i),
+			})
+		}
+	}
+	return tableRows
+}
+
+func tableColumns() []table.Column {
+	return []table.Column{
+		{Title: "Name", Width: 14},
+		{Title: "Position (q)", Width: 14},
+		{Title: "Velocity (v)", Width: 14},
+		{Title: "Effort (τ)", Width: 14},
+	}
+}
+
+func tableWidth(cols []table.Column) int {
+	w := 0
+	for _, c := range cols {
+		w += c.Width
+	}
+	return w
 }
 
 func validateDescriptor(desc *armv1.ModelDescriptor) error {
