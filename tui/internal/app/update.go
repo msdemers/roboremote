@@ -13,6 +13,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 		}
+	case tea.WindowSizeMsg:
+		m.termWidth = msg.Width
+		return m, nil
 	case connectedMsg:
 		if msg.err != nil {
 			m.lifecycle = stateDisconnected

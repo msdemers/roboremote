@@ -21,6 +21,7 @@ type model struct {
 	address    string
 	streamrate armv1.StreamRate
 	lifecycle  lifecycle
+	termWidth  int
 	frames     <-chan stream.Frame
 	descriptor *armv1.ModelDescriptor
 	armState   *armv1.ArmState

@@ -8,29 +8,41 @@ import (
 )
 
 func (m model) View() tea.View {
-	s := "::ROBOREMOTE::\n\n"
+	s := ""
+
+	s += headerBox(headerData{
+		lifecycle:  m.lifecycle,
+		address:    m.address,
+		descriptor: m.descriptor,
+		streamRate: m.streamrate,
+		armState:   m.armState,
+		err:        m.err,
+		termWidth:  m.termWidth,
+	})
 
 	switch m.lifecycle {
 	case stateConnecting:
-		s += "connecting...\n"
+		s += ""
 	case stateStreaming:
 		if m.armState == nil {
 			s += "waiting for first simulation frame..."
 		} else {
 			s += fmt.Sprintf("t = %8.2f s\n", m.armState.GetSimTime())
 
+			rows := toTableRows(jointRows(m.descriptor, m.armState))
 			jt := table.New(
 				table.WithColumns(tableColumns()),
 				table.WithWidth(tableWidth(tableColumns())),
-				table.WithRows(toTableRows(jointRows(m.descriptor, m.armState))),
+				table.WithHeight(len(rows)+1),
+				table.WithRows(rows),
 			)
 			s += jt.View()
 		}
 	case stateDisconnected:
-		s += fmt.Sprintf("disconnected: %v", m.err)
+		s += ""
 	}
 
-	s += "\nPress q to quit.\n"
+	s += "\n\nPress q to quit.\n"
 
 	v := tea.NewView(s)
 	v.AltScreen = true
