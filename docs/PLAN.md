@@ -79,10 +79,23 @@
       descriptor-gated 3-state lifecycle (Connecting/Streaming/Disconnected per
       ADR-010's descriptor-first rule), live `sim_time` verified end-to-end against
       a running server + physics sidecar
-- [ ] Implement connection status panel
-- [ ] Implement joint state monitor panel
-- [ ] Implement control input monitor panel
-- [ ] Implement control policy switcher
+- [x] Implement connection status panel — bordered header box (`header.go`):
+      title, address, model name, per-lifecycle contextual badges
+      (CONNECTING/STREAMING/DISCONNECTED), live-sized to terminal width via
+      `tea.WindowSizeMsg`; full-window rendering via `tea.View.AltScreen`
+- [x] Implement joint state monitor panel — `bubbles/table` of per-DOF q/v/tau
+      (`joints.go`), row-per-DOF (not row-per-joint) to handle `Nq != Nv`
+      correctly, validated against descriptor bounds/frame-shape before display
+- [ ] Implement pane switcher — full-screen Monitor/Control views, tab bar,
+      per-pane keymaps (ADR-021)
+- [ ] Implement persistent footer — compact q/v/tau/EE vectors + command status
+      line (ADR-021; subsumes "control input monitor panel" with the control
+      pane's state strip)
+- [ ] Implement command pump in internal/stream — shared ClientConn, serialized
+      sends, depth-1 latest-wins SetTarget slot (ADR-021)
+- [ ] Implement control pane — mode switcher (immediate number keys, echoed
+      highlight), jog target entry (local cursor + resync), target/error/tau
+      strip, reset with confirm (ADR-013, ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)

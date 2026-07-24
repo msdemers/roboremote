@@ -659,3 +659,71 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
   (Nakamura/Wampler, activates only near singularities); null-space posture task;
   inertia-weighted null-space damping; gripper as a real open/close actuator.
 - Gains are hardcoded defaults; a tuning/config surface is future work.
+
+---
+
+## ADR-021: TUI Interaction Architecture — Pane Switcher, Jog Control, Command Pump
+
+**Status:** Accepted
+
+**Context:**
+Phase 5's remaining scope turns the TUI from passive monitor into command
+surface (mode switching, target entry per ADR-012/013). Open questions: layout
+paradigm (dashboard vs full-screen views vs popups), keyboard regimes for a
+screen repainting at 30 Hz, target entry UX, what the operator sees while
+commanding, how rejections surface, and how a burst of commands stays ordered
+over one gRPC conn.
+
+**Decision:**
+- **Full-screen pane switcher**, not a packed dashboard: dedicated Monitor and
+  Control views, a visible tab bar, each active pane owning the whole keymap
+  (explicit modal regimes, no widget-focus ambiguity). Deliberate side effect:
+  one binary composes a multi-terminal dashboard — one terminal on Monitor,
+  another on Control — which live-demos the multi-client fan-out thesis and
+  last-writer-wins semantics.
+- **Control pane shows sim truth while commanding:** active mode, commanded
+  target, current state, error (per-DOF `q_err` in joint modes; 3-vector +
+  norm in task modes), tau. `GRAVITY_COMP` renders an explicit no-target state
+  (`—`), never zeros. All values come from the stream's echoed
+  `active_mode`/`active_target` — the pane reflects the sim, not the client's
+  last send.
+- **Persistent footer on every pane:** compact `q / v / tau / EE` vectors plus
+  a command status line (`✓` fades; `✗ code — message` sticky until the next
+  command). Rejections render the gRPC status verbatim — no client-side error
+  taxonomy for five commands with one rejection point.
+- **Target entry is jog-first:** select DOF/axis, step keys send absolute
+  `SetTarget` immediately (teleop feel; step-bounded commands by construction).
+  Vocabulary split: **jog** = continuous control verb (immediate), **go-to** =
+  discrete command verb (typed value, confirm, dispatch) — deferred, slots in
+  later without redesign.
+- **Local jog cursor with resync:** each press increments a client-side cursor
+  (correct stacking during bursts; echoed base would drop increments to
+  staleness) and sends absolute. Cursor initializes from echoed `active_target`
+  on mode/pane entry and resyncs to the echo whenever idle — honest
+  convergence to sim truth, adopts other writers' targets.
+- **Mode keys immediate, reset confirmed:** number keys switch mode with no
+  confirm — ADR-013's bumpless transfer makes switching always safe, and a
+  dialog would re-litigate that server-side guarantee. Active-mode highlight
+  follows the echoed stream, not the keypress. `ResetConfiguration` alone gets
+  a confirm step (`r`, `y`): it is go-to-shaped — the one key that moves the
+  arm.
+- **Single gRPC edge + command pump:** `internal/stream` grows into the sole
+  owner of the `ClientConn` (stream out, unary in). Commands dispatch through
+  one serialized pump goroutine (next send after previous ack) with a
+  **depth-1 latest-wins slot for `SetTarget`** — jog bursts coalesce to the
+  newest target; mode/reset pass through unslotted (never coalesced). Fixes
+  the real hazard that concurrent unary RPCs on one conn have no ordering
+  guarantee (a burst's second-to-last press could land last and win).
+
+**Consequences:**
+- Each pane renders the full window — no widget-packing arithmetic, no focus
+  tracking; the root model switches on the active pane in `View()`.
+- The PLAN "control input monitor panel" is not a third panel: it is the
+  control pane's state strip plus the persistent footer.
+- Latest-value-wins now appears at all three tiers — sidecar snapshot slot,
+  relay per-subscriber slots, TUI command slot.
+- Known race accepted: mid-jog mode change from another client draws an
+  `INVALID_ARGUMENT` rejection → footer shows it, jog stops, cursor and mode
+  resync from the stream.
+- Rate limiting of jog RPCs falls out of pump serialization + coalescing; no
+  explicit throttle needed.
