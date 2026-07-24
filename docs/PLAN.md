@@ -86,16 +86,11 @@
 - [x] Implement joint state monitor panel — `bubbles/table` of per-DOF q/v/tau
       (`joints.go`), row-per-DOF (not row-per-joint) to handle `Nq != Nv`
       correctly, validated against descriptor bounds/frame-shape before display
-- [ ] Implement pane switcher — full-screen Monitor/Control views, tab bar,
-      per-pane keymaps (ADR-021)
-- [ ] Implement persistent footer — compact q/v/tau/EE vectors + command status
-      line (ADR-021; subsumes "control input monitor panel" with the control
-      pane's state strip)
-- [ ] Implement command pump in internal/stream — shared ClientConn, serialized
-      sends, depth-1 latest-wins SetTarget slot (ADR-021)
-- [ ] Implement control pane — mode switcher (immediate number keys, echoed
-      highlight), jog target entry (local cursor + resync), target/error/tau
-      strip, reset with confirm (ADR-013, ADR-021)
+- [ ] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
+- [ ] Implement persistent footer — key hints + command status line (ADR-021)
+- [ ] Implement command pump in internal/stream (ADR-021)
+- [ ] Implement Control page — mode switcher, jog entry, state strip, reset
+      confirm (ADR-013, ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)

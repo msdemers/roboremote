@@ -662,7 +662,7 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
 
 ---
 
-## ADR-021: TUI Interaction Architecture — Pane Switcher, Jog Control, Command Pump
+## ADR-021: TUI Interaction Architecture — Paged Layout, Jog Control, Command Pump
 
 **Status:** Accepted
 
@@ -675,22 +675,27 @@ commanding, how rejections surface, and how a burst of commands stays ordered
 over one gRPC conn.
 
 **Decision:**
-- **Full-screen pane switcher**, not a packed dashboard: dedicated Monitor and
-  Control views, a visible tab bar, each active pane owning the whole keymap
-  (explicit modal regimes, no widget-focus ambiguity). Deliberate side effect:
-  one binary composes a multi-terminal dashboard — one terminal on Monitor,
-  another on Control — which live-demos the multi-client fan-out thesis and
+- **Paged layout with persistent chrome**, not a packed dashboard: fixed
+  header, tab bar, and footer frame a content region that renders exactly one
+  **page** at a time (Monitor, Control, future views). The active page owns
+  the content region and all non-global keys (explicit modal regimes, no
+  widget-focus ambiguity). Vocabulary: "page" — content occupying a region
+  exclusively, selected by tab; not "pane" (implies simultaneous siblings) or
+  "screen" (implies full-terminal). Deliberate side effect: one binary
+  composes a multi-terminal dashboard — one terminal on Monitor, another on
+  Control — which live-demos the multi-client fan-out thesis and
   last-writer-wins semantics.
-- **Control pane shows sim truth while commanding:** active mode, commanded
+- **Control page shows sim truth while commanding:** active mode, commanded
   target, current state, error (per-DOF `q_err` in joint modes; 3-vector +
-  norm in task modes), tau. `GRAVITY_COMP` renders an explicit no-target state
-  (`—`), never zeros. All values come from the stream's echoed
-  `active_mode`/`active_target` — the pane reflects the sim, not the client's
-  last send.
-- **Persistent footer on every pane:** compact `q / v / tau / EE` vectors plus
-  a command status line (`✓` fades; `✗ code — message` sticky until the next
-  command). Rejections render the gRPC status verbatim — no client-side error
-  taxonomy for five commands with one rejection point.
+  norm in task modes), tau, plus a compact `q / v / tau / EE` strip (Monitor's
+  rich table makes that strip redundant there — it is Control-page content,
+  not chrome). `GRAVITY_COMP` renders an explicit no-target state (`—`), never
+  zeros. All values come from the stream's echoed `active_mode`/`active_target`
+  — the page reflects the sim, not the client's last send.
+- **Persistent footer is chrome, state-free:** global key hints plus a command
+  status line (`✓` fades; `✗ code — message` sticky until the next command).
+  Rejections render the gRPC status verbatim — no client-side error taxonomy
+  for five commands with one rejection point.
 - **Target entry is jog-first:** select DOF/axis, step keys send absolute
   `SetTarget` immediately (teleop feel; step-bounded commands by construction).
   Vocabulary split: **jog** = continuous control verb (immediate), **go-to** =
@@ -699,7 +704,7 @@ over one gRPC conn.
 - **Local jog cursor with resync:** each press increments a client-side cursor
   (correct stacking during bursts; echoed base would drop increments to
   staleness) and sends absolute. Cursor initializes from echoed `active_target`
-  on mode/pane entry and resyncs to the echo whenever idle — honest
+  on mode/page entry and resyncs to the echo whenever idle — honest
   convergence to sim truth, adopts other writers' targets.
 - **Mode keys immediate, reset confirmed:** number keys switch mode with no
   confirm — ADR-013's bumpless transfer makes switching always safe, and a
@@ -716,10 +721,12 @@ over one gRPC conn.
   guarantee (a burst's second-to-last press could land last and win).
 
 **Consequences:**
-- Each pane renders the full window — no widget-packing arithmetic, no focus
-  tracking; the root model switches on the active pane in `View()`.
+- Pages render only the content region; the root `View()` owns chrome and
+  layout arithmetic (content height = terminal − header − tab bar − footer).
+  Pages own only state they alone mutate; sim truth lives once on the root and
+  is passed in — no second copy to go stale.
 - The PLAN "control input monitor panel" is not a third panel: it is the
-  control pane's state strip plus the persistent footer.
+  Control page's state strip.
 - Latest-value-wins now appears at all three tiers — sidecar snapshot slot,
   relay per-subscriber slots, TUI command slot.
 - Known race accepted: mid-jog mode change from another client draws an
