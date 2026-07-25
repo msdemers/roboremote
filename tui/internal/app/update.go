@@ -12,6 +12,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "q":
 			return m, tea.Quit
+		case "tab":
+			switch m.activePage {
+			case pageMonitor:
+				m.activePage = pageControl
+				return m, nil
+			case pageControl:
+				m.activePage = pageMonitor
+				return m, nil
+			}
+		}
+		// not a global navigation KeyPress. Delegate to per-page handlers
+		switch m.activePage {
+		case pageControl:
+			return m.updateControlPage(msg)
 		}
 	case tea.WindowSizeMsg:
 		m.termWidth = msg.Width

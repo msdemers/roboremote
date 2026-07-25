@@ -86,7 +86,7 @@
 - [x] Implement joint state monitor panel — `bubbles/table` of per-DOF q/v/tau
       (`joints.go`), row-per-DOF (not row-per-joint) to handle `Nq != Nv`
       correctly, validated against descriptor bounds/frame-shape before display
-- [ ] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
+- [x] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
 - [ ] Implement persistent footer — key hints + command status line (ADR-021)
 - [ ] Implement command pump in internal/stream (ADR-021)
 - [ ] Implement Control page — mode switcher, jog entry, state strip, reset

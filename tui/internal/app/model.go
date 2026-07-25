@@ -16,16 +16,32 @@ const (
 	stateDisconnected
 )
 
+type page int
+
+const (
+	pageMonitor page = iota
+	pageControl
+)
+
+var pageTypeToLabel = map[page]string{
+	pageMonitor: "Monitor",
+	pageControl: "Control",
+}
+
+var pageOrder = []page{pageMonitor, pageControl}
+
 type model struct {
-	ctx        context.Context // breaking go's "no context in structs" convention because model is the lifecycle owner
-	address    string
-	streamrate armv1.StreamRate
-	lifecycle  lifecycle
-	termWidth  int
-	frames     <-chan stream.Frame
-	descriptor *armv1.ModelDescriptor
-	armState   *armv1.ArmState
-	err        error
+	ctx         context.Context // breaking go's "no context in structs" convention because model is the lifecycle owner
+	address     string
+	streamrate  armv1.StreamRate
+	lifecycle   lifecycle
+	activePage  page
+	controlPage controlPage
+	termWidth   int
+	frames      <-chan stream.Frame
+	descriptor  *armv1.ModelDescriptor
+	armState    *armv1.ArmState
+	err         error
 }
 
 func New(ctx context.Context, address string, streamrate armv1.StreamRate) tea.Model {
@@ -34,5 +50,6 @@ func New(ctx context.Context, address string, streamrate armv1.StreamRate) tea.M
 		address:    address,
 		streamrate: streamrate,
 		lifecycle:  stateConnecting,
+		activePage: pageMonitor,
 	}
 }
