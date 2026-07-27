@@ -10,7 +10,11 @@ import (
 )
 
 var (
-	titleStyle        = lipgloss.NewStyle().Bold(true).Underline(true)
+	titleStyle   = lipgloss.NewStyle().Bold(true).Underline(true)
+	columnStyle  = lipgloss.NewStyle().Align(lipgloss.Center).Padding(0, 1).Border(lipgloss.NormalBorder(), false, false, false, true)
+	dividerStyle = lipgloss.NewStyle().Padding(0, 1)
+	divider      = dividerStyle.Render("│")
+
 	standardStyle     = lipgloss.NewStyle()
 	inactiveModeStyle = standardStyle.Faint(true)
 	activeModeStyle   = standardStyle.Bold(true)
@@ -21,6 +25,17 @@ var (
 
 type controlPage struct {
 	selected int
+}
+
+func selectionDomain(mode armv1.ControlMode) string {
+	switch mode {
+	case armv1.ControlMode_CONTROL_MODE_JOINT_PD_COMPENSATED, armv1.ControlMode_CONTROL_MODE_JOINT_PD_RAW:
+		return "joint"
+	case armv1.ControlMode_CONTROL_MODE_TASK_PD_COMPENSATED, armv1.ControlMode_CONTROL_MODE_TASK_PD_RAW:
+		return "task"
+	default:
+		return "none"
+	}
 }
 
 func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
@@ -61,10 +76,17 @@ func (m model) viewControlPage() string {
 	case armv1.ControlMode_CONTROL_MODE_TASK_PD_RAW, armv1.ControlMode_CONTROL_MODE_TASK_PD_COMPENSATED:
 		controlsPane = m.renderTaskControlPane()
 	default:
-		controlsPane = standardStyle.Render("No target settings for this controller")
+		controlsPane = standardStyle.Render("│ No target parameters for this controller")
 	}
 
-	return lipgloss.JoinHorizontal(lipgloss.Top, modePane, controlsPane)
+	mainBody := lipgloss.JoinHorizontal(lipgloss.Top, modePane, controlsPane)
+	divider := standardStyle.Faint(true).Render(strings.Repeat("─", m.termWidth-2))
+	compactSnapshot := m.renderCompactSnapshot()
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		mainBody,
+		divider,
+		compactSnapshot)
 }
 
 func (m model) renderControlModeList() string {
@@ -103,6 +125,9 @@ func (m model) renderJointControlPane() string {
 	actualQ := m.armState.GetQ().GetQ()
 	nQ := len(targetQ)
 
+	labelsCol := lipgloss.JoinVertical(lipgloss.Left, m.jointLabelPerQIndex()...)
+	labelsCol = columnStyle.Render(lipgloss.JoinVertical(lipgloss.Center, titleStyle.Render("Coordinate"), labelsCol))
+
 	targetCol := make([]string, 0, nQ+1)
 	actualCol := make([]string, 0, nQ+1)
 	errorCol := make([]string, 0, nQ+1)
@@ -120,18 +145,152 @@ func (m model) renderJointControlPane() string {
 			controlStyle = standardStyle
 		}
 		targetCol = append(targetCol, controlStyle.Render(fmt.Sprintf("%.2f", targetQ[i])))
-		actualCol = append(actualCol, controlStyle.Render(fmt.Sprintf("%.2f", actualQ[i])))
-		errorCol = append(errorCol, controlStyle.Render(fmt.Sprintf("%.2f", qErr)))
+		actualCol = append(actualCol, standardStyle.Render(fmt.Sprintf("%.2f", actualQ[i])))
+		errorCol = append(errorCol, standardStyle.Render(fmt.Sprintf("%.2f", qErr)))
 	}
 
 	return lipgloss.JoinHorizontal(
-		lipgloss.Top, "    ",
-		lipgloss.JoinVertical(lipgloss.Center, targetCol...), " ",
-		lipgloss.JoinVertical(lipgloss.Center, actualCol...), " ",
-		lipgloss.JoinVertical(lipgloss.Center, errorCol...), " ",
+		lipgloss.Top, " ",
+		labelsCol,
+		columnStyle.Render(lipgloss.JoinVertical(lipgloss.Center, targetCol...)),
+		columnStyle.Render(lipgloss.JoinVertical(lipgloss.Center, actualCol...)),
+		columnStyle.Render(lipgloss.JoinVertical(lipgloss.Center, errorCol...)),
 	)
 }
 
+func (m model) jointLabelPerQIndex() []string {
+	joints := m.descriptor.GetJoints()
+	labels := make([]string, m.descriptor.GetNq())
+
+	for _, j := range joints {
+		firstIndex := j.GetIdxQ()
+		prefix := "  "
+		labelStyle := standardStyle
+		if firstIndex == uint32(m.controlPage.selected) {
+			labelStyle = selectedStyle
+			prefix = markerString + " "
+		}
+		labels[firstIndex] = labelStyle.Render(prefix + j.GetName())
+	}
+	return labels
+}
+
 func (m model) renderTaskControlPane() string {
-	return standardStyle.Render("Task Space Control coming soon!")
+	targetPose := m.armState.GetCartesianTarget()
+	labels, targetAsSlice := cartesianPoseToSlices(targetPose)
+
+	styledLabels := make([]string, len(labels))
+	targets := make([]string, len(targetAsSlice))
+
+	for i, val := range targetAsSlice {
+		prefix := "  "
+		rowStyle := standardStyle
+		if i > 2 {
+			// faint style for all but the 3 translation elements
+			rowStyle = rowStyle.Faint(true)
+		}
+		if i == m.controlPage.selected {
+			rowStyle = selectedStyle
+			prefix = markerString + " "
+		}
+		styledLabels[i] = rowStyle.Render(prefix + labels[i])
+		targets[i] = rowStyle.Render(fmt.Sprintf("%.3f", val))
+	}
+
+	labelsCol := lipgloss.JoinVertical(lipgloss.Left, styledLabels...)
+	labelsCol = lipgloss.JoinVertical(lipgloss.Center, titleStyle.Render("SE(3)"), labelsCol)
+	targetsCol := lipgloss.JoinVertical(lipgloss.Right, targets...)
+	targetsCol = lipgloss.JoinVertical(lipgloss.Right, titleStyle.Render("Desired"), targetsCol)
+
+	_, actualAsSlice := cartesianPoseToSlices(m.armState.EndEffector)
+	actuals := make([]string, len(actualAsSlice))
+	diffs := make([]string, len(actualAsSlice))
+
+	for i, val := range actualAsSlice {
+		rowStyle := standardStyle
+		if i > 2 {
+			rowStyle = rowStyle.Faint(true)
+			diffs[i] = rowStyle.Render("—.——")
+		} else {
+			// TODO: more rigorous handling of SE3/Quaternion diffs and errors
+			diffs[i] = rowStyle.Render(fmt.Sprintf("%.3f", val-targetAsSlice[i]))
+		}
+		actuals[i] = rowStyle.Render(fmt.Sprintf("%.3f", val))
+
+	}
+	actualsCol := lipgloss.JoinVertical(lipgloss.Right, actuals...)
+	actualsCol = lipgloss.JoinVertical(lipgloss.Right, titleStyle.Render("Actual"), actualsCol)
+	diffsCol := lipgloss.JoinVertical(lipgloss.Right, diffs...)
+	diffsCol = lipgloss.JoinVertical(lipgloss.Right, titleStyle.Render("Diff"), diffsCol)
+
+	fixedColStyle := columnStyle.Width(10)
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top, " ",
+		columnStyle.Render(labelsCol),
+		fixedColStyle.Render(targetsCol),
+		fixedColStyle.Render(actualsCol),
+		fixedColStyle.Render(diffsCol),
+	)
+}
+
+func cartesianPoseToSlices(cp *armv1.CartesianPose) ([]string, []float64) {
+	// scalar last ordering convention
+	labels := []string{"px", "py", "pz", "qx", "qy", "qz", "qw"}
+	vals := []float64{
+		cp.GetX(),
+		cp.GetY(),
+		cp.GetZ(),
+		cp.GetQx(),
+		cp.GetQy(),
+		cp.GetQz(),
+		cp.GetQw(),
+	}
+	return labels, vals
+}
+
+func formatFloatsToStrings[T float32 | float64](slice []T, sFormat string) []string {
+	result := make([]string, len(slice))
+
+	for i, val := range slice {
+		result[i] = fmt.Sprintf(sFormat, val)
+	}
+	return result
+}
+
+func (m model) renderCompactSnapshot() string {
+	style := standardStyle.Faint(true)
+
+	qSnippet := "q: " + strings.Join(
+		formatFloatsToStrings(m.armState.GetQ().GetQ(), "%.2f"),
+		", ",
+	)
+
+	vSnippet := "v: " + strings.Join(
+		formatFloatsToStrings(m.armState.GetV().GetV(), "%.2f"),
+		", ",
+	)
+
+	tauSnippet := "τ: " + strings.Join(
+		formatFloatsToStrings(m.armState.GetTau().GetTau(), "%.2f"),
+		", ",
+	)
+
+	dofWidget := lipgloss.JoinVertical(
+		lipgloss.Left,
+		style.Render(qSnippet),
+		style.Render(vSnippet),
+		style.Render(tauSnippet),
+	)
+
+	eePose := m.armState.GetEndEffector()
+	pSnippet := fmt.Sprintf("pos: %.3f, %.3f, %.3f", eePose.GetX(), eePose.GetY(), eePose.GetZ())
+	quatSnippet := fmt.Sprintf("quat: %.2f, %.2f, %.2f, %.2f\n  ↳(x,y,z,w)", eePose.GetQx(), eePose.GetQy(), eePose.GetQz(), eePose.GetQw())
+
+	eeWidget := lipgloss.JoinVertical(
+		lipgloss.Left,
+		style.Render(pSnippet),
+		style.Render(quatSnippet),
+	)
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, dofWidget, "   ", eeWidget)
 }

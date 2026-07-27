@@ -59,6 +59,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.lifecycle = stateDisconnected
 			return m, nil
 		}
+
+		// update controlPage parameters and caches
+		oldDomain := selectionDomain(m.armState.GetActiveMode())
+		if oldDomain != selectionDomain(msg.armState.GetActiveMode()) {
+			m.controlPage.selected = 0
+		}
 		m.armState = msg.armState
 		return m, waitForSimFrame(m.frames)
 	case disconnectMsg:
