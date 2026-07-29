@@ -126,6 +126,11 @@
 - [ ] Update README with public demo URL
 
 ## Open TODOs
+- [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — zero
+      task-Jacobian column + deliberate null-space decoupling (ADR-020) leaves it
+      undamped, and the integrator enforces no joint limits despite descriptor
+      carrying them. Needs some combination of joint-limit enforcement, damping,
+      or friction in the sidecar.
 - [ ] V2: User-placeable sensor nodes (position/attitude/velocity), physics-side
       world pose + spatial velocity, add/remove lifecycle (deferred per ADR-012)
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
