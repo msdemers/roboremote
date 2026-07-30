@@ -1,8 +1,6 @@
 package simclient
 
 import (
-	"context"
-
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 )
 
@@ -11,8 +9,8 @@ type Frame struct {
 	Err      error
 }
 
-func (c *Client) Subscribe(ctx context.Context, streamrate armv1.StreamRate) (<-chan Frame, error) {
-	upstream, err := c.stub.Subscribe(ctx, &armv1.SubscribeRequest{Rate: streamrate})
+func (c *Client) Subscribe(streamRate armv1.StreamRate) (<-chan Frame, error) {
+	upstream, err := c.stub.Subscribe(c.ctx, &armv1.SubscribeRequest{Rate: streamRate})
 	if err != nil {
 		c.conn.Close()
 		return nil, err
@@ -20,7 +18,7 @@ func (c *Client) Subscribe(ctx context.Context, streamrate armv1.StreamRate) (<-
 
 	frames := make(chan Frame)
 	go func() {
-		defer c.conn.Close()
+		defer close(frames)
 		for {
 			envelope, err := upstream.Recv()
 			if err != nil {

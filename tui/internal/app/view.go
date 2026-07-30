@@ -89,7 +89,7 @@ func (m model) View() tea.View {
 		lifecycle:  m.lifecycle,
 		address:    m.address,
 		descriptor: m.descriptor,
-		streamRate: m.streamrate,
+		streamRate: m.streamRate,
 		armState:   m.armState,
 		err:        m.err,
 		termWidth:  m.termWidth,

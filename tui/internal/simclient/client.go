@@ -1,6 +1,8 @@
 package simclient
 
 import (
+	"context"
+
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -8,10 +10,11 @@ import (
 
 type Client struct {
 	conn *grpc.ClientConn
+	ctx  context.Context
 	stub armv1.ArmSimServiceClient
 }
 
-func New(address string) (*Client, error) {
+func New(ctx context.Context, address string) (*Client, error) {
 	serverConn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
@@ -21,6 +24,14 @@ func New(address string) (*Client, error) {
 
 	return &Client{
 		conn: serverConn,
+		ctx:  ctx,
 		stub: serviceClient,
 	}, nil
+}
+
+func (c *Client) Close() error {
+	if err := c.conn.Close(); err != nil {
+		return err
+	}
+	return nil
 }

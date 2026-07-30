@@ -9,6 +9,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 	"github.com/msdemers/roboremote/tui/internal/app"
+	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
 func main() {
@@ -28,12 +29,18 @@ func main() {
 		relayAddr = "localhost:50051"
 	}
 
-	streamrate := armv1.StreamRate_STREAM_RATE_UNSPECIFIED
+	streamRate := armv1.StreamRate_STREAM_RATE_UNSPECIFIED
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p := tea.NewProgram(app.New(ctx, relayAddr, streamrate))
+	sim, err := sim.New(ctx, relayAddr)
+	if err != nil {
+		log.Fatalf("faile to connect to sim relay server: %v", err)
+	}
+	defer sim.Close()
+
+	p := tea.NewProgram(app.New(sim, streamRate))
 
 	if _, err := p.Run(); err != nil {
 		log.Fatalf("shutting down: %v", err)

@@ -1,8 +1,6 @@
 package app
 
 import (
-	"context"
-
 	tea "charm.land/bubbletea/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 	sim "github.com/msdemers/roboremote/tui/internal/simclient"
@@ -31,9 +29,8 @@ var pageTypeToLabel = map[page]string{
 var pageOrder = []page{pageMonitor, pageControl}
 
 type model struct {
-	ctx         context.Context // breaking go's "no context in structs" convention because model is the lifecycle owner
 	address     string
-	streamrate  armv1.StreamRate
+	streamRate  armv1.StreamRate
 	sim         *sim.Client
 	lifecycle   lifecycle
 	activePage  page
@@ -45,11 +42,10 @@ type model struct {
 	err         error
 }
 
-func New(ctx context.Context, address string, streamrate armv1.StreamRate) tea.Model {
+func New(client *sim.Client, streamRate armv1.StreamRate) tea.Model {
 	return model{
-		ctx:        ctx,
-		address:    address,
-		streamrate: streamrate,
+		sim:        client,
+		streamRate: streamRate,
 		lifecycle:  stateConnecting,
 		activePage: pageMonitor,
 	}

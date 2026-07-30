@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"errors"
 
 	tea "charm.land/bubbletea/v2"
@@ -10,21 +9,12 @@ import (
 )
 
 func (m model) Init() tea.Cmd {
-	return connectSimClient(m.address) //subscribeToSimStream(m.ctx, m.address, m.streamrate),
+	return subscribeToSimStream(m.sim, m.streamRate)
 }
 
-func connectSimClient(address string) tea.Cmd {
+func subscribeToSimStream(simClient *sim.Client, streamRate armv1.StreamRate) tea.Cmd {
 	return func() tea.Msg {
-		simClient, err := sim.New(address)
-		if err != nil {
-			return connectedMsg{err: err}
-		}
-		return connectedMsg{sim: simClient}
-	}
-}
-func subscribeToSimStream(simClient *sim.Client, ctx context.Context, streamrate armv1.StreamRate) tea.Cmd {
-	return func() tea.Msg {
-		frames, err := simClient.Subscribe(ctx, streamrate)
+		frames, err := simClient.Subscribe(streamRate)
 		if err != nil {
 			return subscribedMsg{err: err}
 		}
