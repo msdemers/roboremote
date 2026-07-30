@@ -36,6 +36,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 			return m, nil
 		}
+		m.sim = msg.sim
+		return m, subscribeToSimStream(m.sim, m.ctx, m.streamrate)
+	case subscribedMsg:
+		if msg.err != nil {
+			m.lifecycle = stateDisconnected
+			m.err = msg.err
+			return m, nil
+		}
 		m.frames = msg.ch
 		return m, waitForSimFrame(m.frames)
 	case descriptorMsg:

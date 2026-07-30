@@ -6,24 +6,33 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
-	"github.com/msdemers/roboremote/tui/internal/stream"
+	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
 func (m model) Init() tea.Cmd {
-	return connectToSimStream(m.ctx, m.address, m.streamrate)
+	return connectSimClient(m.address) //subscribeToSimStream(m.ctx, m.address, m.streamrate),
 }
 
-func connectToSimStream(ctx context.Context, addr string, streamrate armv1.StreamRate) tea.Cmd {
+func connectSimClient(address string) tea.Cmd {
 	return func() tea.Msg {
-		frames, err := stream.Connect(ctx, addr, streamrate)
+		simClient, err := sim.New(address)
 		if err != nil {
 			return connectedMsg{err: err}
 		}
-		return connectedMsg{ch: frames}
+		return connectedMsg{sim: simClient}
+	}
+}
+func subscribeToSimStream(simClient *sim.Client, ctx context.Context, streamrate armv1.StreamRate) tea.Cmd {
+	return func() tea.Msg {
+		frames, err := simClient.Subscribe(ctx, streamrate)
+		if err != nil {
+			return subscribedMsg{err: err}
+		}
+		return subscribedMsg{ch: frames}
 	}
 }
 
-func waitForSimFrame(frames <-chan stream.Frame) tea.Cmd {
+func waitForSimFrame(frames <-chan sim.Frame) tea.Cmd {
 	return func() tea.Msg {
 		frame, ok := <-frames
 		if !ok {

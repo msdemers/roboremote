@@ -2,11 +2,16 @@ package app
 
 import (
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
-	"github.com/msdemers/roboremote/tui/internal/stream"
+	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
 type connectedMsg struct {
-	ch  <-chan stream.Frame
+	sim *sim.Client
+	err error
+}
+
+type subscribedMsg struct {
+	ch  <-chan sim.Frame
 	err error
 }
 

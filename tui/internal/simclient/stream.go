@@ -1,11 +1,9 @@
-package stream
+package simclient
 
 import (
 	"context"
 
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Frame struct {
@@ -13,22 +11,16 @@ type Frame struct {
 	Err      error
 }
 
-func Connect(ctx context.Context, addr string, streamrate armv1.StreamRate) (<-chan Frame, error) {
-	serverConn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func (c *Client) Subscribe(ctx context.Context, streamrate armv1.StreamRate) (<-chan Frame, error) {
+	upstream, err := c.stub.Subscribe(ctx, &armv1.SubscribeRequest{Rate: streamrate})
 	if err != nil {
-		return nil, err
-	}
-
-	serviceClient := armv1.NewArmSimServiceClient(serverConn)
-	upstream, err := serviceClient.Subscribe(ctx, &armv1.SubscribeRequest{Rate: streamrate})
-	if err != nil {
-		serverConn.Close()
+		c.conn.Close()
 		return nil, err
 	}
 
 	frames := make(chan Frame)
 	go func() {
-		defer serverConn.Close()
+		defer c.conn.Close()
 		for {
 			envelope, err := upstream.Recv()
 			if err != nil {

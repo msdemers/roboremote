@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
-	"github.com/msdemers/roboremote/tui/internal/stream"
+	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
 type lifecycle int
@@ -34,11 +34,12 @@ type model struct {
 	ctx         context.Context // breaking go's "no context in structs" convention because model is the lifecycle owner
 	address     string
 	streamrate  armv1.StreamRate
+	sim         *sim.Client
 	lifecycle   lifecycle
 	activePage  page
 	controlPage controlPage
 	termWidth   int
-	frames      <-chan stream.Frame
+	frames      <-chan sim.Frame
 	descriptor  *armv1.ModelDescriptor
 	armState    *armv1.ArmState
 	err         error
