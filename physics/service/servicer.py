@@ -7,6 +7,7 @@ from control import controller_factory
 import numpy as np
 from . import mappers
 import time, threading
+import logging
 
 class ArmSimServicer(pb_grpc.ArmSimServiceServicer):
     def __init__(self, sim: Simulator, model_name, model_version, publish_hz=120):
@@ -48,7 +49,8 @@ class ArmSimServicer(pb_grpc.ArmSimServiceServicer):
         except KeyError as e:
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"received invalid control mode: {e}")
         except ValueError as e:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, f"unsupported control mode: {e}")
+            logging.exception("SetControlMode rejected")
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
         
         return pb.SetControlModeResponse()
 
