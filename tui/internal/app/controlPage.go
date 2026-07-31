@@ -55,7 +55,7 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 		m.controlPage.selected--
 	case keyStr == "down" || keyStr == "j":
 		m.controlPage.selected++
-	case keyStr >= "1" && keyStr <= "9":
+	case keyStr >= "0" && keyStr <= "9":
 		digit, _ := strconv.Atoi(keyStr)
 		if _, ok := armv1.ControlMode_name[int32(digit)]; ok {
 			mode := armv1.ControlMode(int32(digit))

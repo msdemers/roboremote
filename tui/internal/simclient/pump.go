@@ -18,6 +18,19 @@ const (
 	KindReset
 )
 
+func (k CommandKind) String() string {
+	switch k {
+	case KindSetMode:
+		return "SetMode"
+	case KindSetTarget:
+		return "SetTarget"
+	case KindReset:
+		return "ResetConfiguration"
+	default:
+		return "Unknown Command"
+	}
+}
+
 type queuedCmd struct {
 	kind CommandKind
 	mode armv1.ControlMode

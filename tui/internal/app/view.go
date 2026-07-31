@@ -117,7 +117,15 @@ func (m model) View() tea.View {
 		s += ""
 	}
 
-	s += "\n\n| q (quit) · tab (next page) |\n"
+	s += "\n"
+
+	fd := footerData{width: m.termWidth}
+
+	if m.latestResult != nil {
+		fd.latestCommandName = m.latestResult.Kind.String()
+		fd.latestCommandErr = m.latestResult.Err
+	}
+	s += footerBox(fd)
 
 	v := tea.NewView(s)
 	v.AltScreen = true
