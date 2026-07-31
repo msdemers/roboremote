@@ -9,9 +9,12 @@ import (
 )
 
 type Client struct {
-	conn *grpc.ClientConn
-	ctx  context.Context
-	stub armv1.ArmSimServiceClient
+	conn         *grpc.ClientConn
+	ctx          context.Context
+	stub         armv1.ArmSimServiceClient
+	discreteCmds chan queuedCmd
+	latestTarget chan *armv1.SetTargetRequest
+	results      chan CommandResult
 }
 
 func New(ctx context.Context, address string) (*Client, error) {
@@ -22,11 +25,17 @@ func New(ctx context.Context, address string) (*Client, error) {
 
 	serviceClient := armv1.NewArmSimServiceClient(serverConn)
 
-	return &Client{
-		conn: serverConn,
-		ctx:  ctx,
-		stub: serviceClient,
-	}, nil
+	c := Client{
+		conn:         serverConn,
+		ctx:          ctx,
+		stub:         serviceClient,
+		discreteCmds: make(chan queuedCmd, 8),
+		latestTarget: make(chan *armv1.SetTargetRequest, 1),
+		results:      make(chan CommandResult, 4),
+	}
+
+	go c.pump()
+	return &c, nil
 }
 
 func (c *Client) Close() error {

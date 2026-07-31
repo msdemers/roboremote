@@ -9,7 +9,11 @@ import (
 )
 
 func (m model) Init() tea.Cmd {
-	return subscribeToSimStream(m.sim, m.streamRate)
+	return tea.Batch(
+		subscribeToSimStream(m.sim, m.streamRate),
+		waitForCommandResult(m.sim.Results()),
+	)
+
 }
 
 func subscribeToSimStream(simClient *sim.Client, streamRate armv1.StreamRate) tea.Cmd {
@@ -19,6 +23,13 @@ func subscribeToSimStream(simClient *sim.Client, streamRate armv1.StreamRate) te
 			return subscribedMsg{err: err}
 		}
 		return subscribedMsg{ch: frames}
+	}
+}
+
+func submitControlMode(c *sim.Client, mode armv1.ControlMode) tea.Cmd {
+	return func() tea.Msg {
+		c.SubmitMode(mode)
+		return nil
 	}
 }
 
@@ -41,5 +52,16 @@ func waitForSimFrame(frames <-chan sim.Frame) tea.Cmd {
 		default:
 			return disconnectMsg{err: errors.New("unrecognized frame payload type")}
 		}
+	}
+}
+
+func waitForCommandResult(results <-chan sim.CommandResult) tea.Cmd {
+	return func() tea.Msg {
+		result, ok := <-results
+		if !ok {
+			return disconnectMsg{err: errors.New("sim relay client closed unexpectedly")}
+		}
+
+		return commandResultMsg{result: result}
 	}
 }

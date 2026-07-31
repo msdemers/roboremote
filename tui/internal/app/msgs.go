@@ -5,11 +5,6 @@ import (
 	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
-type connectedMsg struct {
-	sim *sim.Client
-	err error
-}
-
 type subscribedMsg struct {
 	ch  <-chan sim.Frame
 	err error
@@ -21,6 +16,10 @@ type descriptorMsg struct {
 
 type armStateMsg struct {
 	armState *armv1.ArmState
+}
+
+type commandResultMsg struct {
+	result sim.CommandResult
 }
 
 type disconnectMsg struct {

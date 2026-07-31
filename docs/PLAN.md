@@ -88,7 +88,7 @@
       correctly, validated against descriptor bounds/frame-shape before display
 - [x] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
 - [ ] Implement persistent footer — key hints + command status line (ADR-021)
-- [ ] Implement command pump in internal/stream (ADR-021)
+- [x] Implement command pump in internal/simclient (ADR-021)
 - [ ] Implement Control page — mode switcher, jog entry, state strip, reset
       confirm (ADR-013, ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")

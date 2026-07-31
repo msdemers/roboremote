@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -24,41 +25,45 @@ var (
 )
 
 type controlPage struct {
-	selected int
+	selected    int
+	nSelectable int
 }
 
-func selectionDomain(mode armv1.ControlMode) string {
+type controlDomain int
+
+const (
+	DomainNone controlDomain = iota
+	DomainTask
+	DomainJoint
+)
+
+func selectionDomain(mode armv1.ControlMode) controlDomain {
 	switch mode {
 	case armv1.ControlMode_CONTROL_MODE_JOINT_PD_COMPENSATED, armv1.ControlMode_CONTROL_MODE_JOINT_PD_RAW:
-		return "joint"
+		return DomainJoint
 	case armv1.ControlMode_CONTROL_MODE_TASK_PD_COMPENSATED, armv1.ControlMode_CONTROL_MODE_TASK_PD_RAW:
-		return "task"
+		return DomainTask
 	default:
-		return "none"
+		return DomainNone
 	}
 }
 
 func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
-	// determine the length of the controller command target
-	targetInterface := m.armState.GetActiveTarget()
-	var nTarget int
-	switch target := targetInterface.(type) {
-	case *armv1.ArmState_JointTarget:
-		nTarget = len(target.JointTarget.GetQ())
-	case *armv1.ArmState_CartesianTarget:
-		nTarget = 3 // only allow selection and editing of the x,y,z positions
-	default:
-		nTarget = 0
-	}
-
-	switch msg.String() {
-	case "up", "k":
+	keyStr := msg.String()
+	switch {
+	case keyStr == "up" || keyStr == "k":
 		m.controlPage.selected--
-	case "down", "j":
+	case keyStr == "down" || keyStr == "j":
 		m.controlPage.selected++
+	case keyStr >= "1" && keyStr <= "9":
+		digit, _ := strconv.Atoi(keyStr)
+		if _, ok := armv1.ControlMode_name[int32(digit)]; ok {
+			mode := armv1.ControlMode(int32(digit))
+			return m, submitControlMode(m.sim, mode)
+		}
 	}
 
-	if nTarget != 0 {
+	if nTarget := m.controlPage.nSelectable; nTarget != 0 {
 		m.controlPage.selected = (m.controlPage.selected + nTarget) % nTarget
 	} else {
 		m.controlPage.selected = 0

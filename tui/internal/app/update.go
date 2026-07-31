@@ -62,11 +62,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// update controlPage parameters and caches
 		oldDomain := selectionDomain(m.armState.GetActiveMode())
-		if oldDomain != selectionDomain(msg.armState.GetActiveMode()) {
+		if newDomain := selectionDomain(msg.armState.GetActiveMode()); newDomain != oldDomain {
 			m.controlPage.selected = 0
+			m.controlPage.nSelectable = 0
+			switch newDomain {
+			case DomainTask:
+				m.controlPage.nSelectable = 3
+			case DomainJoint:
+				m.controlPage.nSelectable = int(m.descriptor.GetNq())
+			}
+
 		}
 		m.armState = msg.armState
 		return m, waitForSimFrame(m.frames)
+	case commandResultMsg:
+		m.latestResult = &msg.result
+		return m, waitForCommandResult(m.sim.Results())
 	case disconnectMsg:
 		m.lifecycle = stateDisconnected
 		m.err = msg.err

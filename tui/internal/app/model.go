@@ -29,17 +29,18 @@ var pageTypeToLabel = map[page]string{
 var pageOrder = []page{pageMonitor, pageControl}
 
 type model struct {
-	address     string
-	streamRate  armv1.StreamRate
-	sim         *sim.Client
-	lifecycle   lifecycle
-	activePage  page
-	controlPage controlPage
-	termWidth   int
-	frames      <-chan sim.Frame
-	descriptor  *armv1.ModelDescriptor
-	armState    *armv1.ArmState
-	err         error
+	address      string
+	streamRate   armv1.StreamRate
+	sim          *sim.Client
+	lifecycle    lifecycle
+	activePage   page
+	controlPage  controlPage
+	termWidth    int
+	frames       <-chan sim.Frame
+	descriptor   *armv1.ModelDescriptor
+	armState     *armv1.ArmState
+	latestResult *sim.CommandResult
+	err          error
 }
 
 func New(client *sim.Client, streamRate armv1.StreamRate) tea.Model {
