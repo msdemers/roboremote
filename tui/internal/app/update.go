@@ -2,8 +2,14 @@ package app
 
 import (
 	"errors"
+	"slices"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
+)
+
+const (
+	jogIdleTime = 200 * time.Millisecond
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -62,7 +68,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// update controlPage parameters and caches
 		oldDomain := selectionDomain(m.armState.GetActiveMode())
-		if newDomain := selectionDomain(msg.armState.GetActiveMode()); newDomain != oldDomain {
+		newDomain := selectionDomain(msg.armState.GetActiveMode())
+		if newDomain != oldDomain {
 			m.controlPage.selected = 0
 			m.controlPage.nSelectable = 0
 			switch newDomain {
@@ -71,9 +78,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case DomainJoint:
 				m.controlPage.nSelectable = int(m.descriptor.GetNq())
 			}
-
+			m.controlPage.lastJogTime = time.Time{}
 		}
+		if time.Since(m.controlPage.lastJogTime) > jogIdleTime {
+			switch newDomain {
+			case DomainTask:
+				target := msg.armState.GetCartesianTarget()
+				m.controlPage.targetCursor = []float64{
+					target.GetX(), target.GetY(), target.GetZ(),
+				}
+
+			case DomainJoint:
+				target := msg.armState.GetJointTarget()
+				m.controlPage.targetCursor = slices.Clone(target.GetQ())
+
+			case DomainNone:
+				m.controlPage.targetCursor = []float64{}
+			}
+			m.controlPage.touched = make([]bool, len(m.controlPage.targetCursor))
+		}
+
 		m.armState = msg.armState
+
 		return m, waitForSimFrame(m.frames)
 	case commandResultMsg:
 		m.latestResult = &msg.result
