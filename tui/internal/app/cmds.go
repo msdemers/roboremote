@@ -33,6 +33,13 @@ func submitControlMode(c *sim.Client, mode armv1.ControlMode) tea.Cmd {
 	}
 }
 
+func submitControlTarget(c *sim.Client, target *armv1.SetTargetRequest) tea.Cmd {
+	return func() tea.Msg {
+		c.SubmitTarget(target)
+		return nil
+	}
+}
+
 func waitForSimFrame(frames <-chan sim.Frame) tea.Cmd {
 	return func() tea.Msg {
 		frame, ok := <-frames

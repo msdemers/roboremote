@@ -2,8 +2,10 @@ package app
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -24,9 +26,18 @@ var (
 	modeMarkerStyle   = lipgloss.NewStyle().Bold(true)
 )
 
+const (
+	jogStepRadians = 0.01
+	jogStepMeters  = 0.005
+)
+
 type controlPage struct {
-	selected    int
-	nSelectable int
+	selectionDomain controlDomain
+	selected        int
+	nSelectable     int
+	targetCursor    []float64
+	touched         []bool
+	lastJogTime     time.Time
 }
 
 type controlDomain int
@@ -61,6 +72,14 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 			mode := armv1.ControlMode(int32(digit))
 			return m, submitControlMode(m.sim, mode)
 		}
+	case keyStr == "+" && m.controlPage.nSelectable > 0:
+		m.controlPage.jogCursor(1) // jog up one step
+		targetReq := m.controlPage.targetRequest()
+		return m, submitControlTarget(m.sim, targetReq)
+	case keyStr == "-" && m.controlPage.nSelectable > 0:
+		m.controlPage.jogCursor(-1) // jog down one step
+		targetReq := m.controlPage.targetRequest()
+		return m, submitControlTarget(m.sim, targetReq)
 	}
 
 	if nTarget := m.controlPage.nSelectable; nTarget != 0 {
@@ -298,4 +317,54 @@ func (m model) renderCompactSnapshot() string {
 	)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, dofWidget, "   ", eeWidget)
+}
+
+func (cp *controlPage) jogCursor(steps int) {
+	if cp.selected >= len(cp.targetCursor) {
+		return
+	}
+
+	var jogStep float64
+	switch cp.selectionDomain {
+	case DomainNone:
+		return
+	case DomainTask:
+		jogStep = jogStepMeters
+	case DomainJoint:
+		jogStep = jogStepRadians
+	}
+
+	cp.targetCursor[cp.selected] += float64(steps) * jogStep
+	cp.touched[cp.selected] = true
+	cp.lastJogTime = time.Now()
+}
+
+func (cp controlPage) targetRequest() *armv1.SetTargetRequest {
+	switch cp.selectionDomain {
+	case DomainTask:
+		newTarget := armv1.CartesianPose{
+			X:  cp.targetCursor[0],
+			Y:  cp.targetCursor[1],
+			Z:  cp.targetCursor[2],
+			Qx: cp.targetCursor[3],
+			Qy: cp.targetCursor[4],
+			Qz: cp.targetCursor[5],
+			Qw: cp.targetCursor[6],
+		}
+		return &armv1.SetTargetRequest{
+			Target: &armv1.SetTargetRequest_CartesianPose{
+				CartesianPose: &newTarget,
+			},
+		}
+	case DomainJoint:
+		newTarget := armv1.Coordinates{
+			Q: slices.Clone(cp.targetCursor),
+		}
+		return &armv1.SetTargetRequest{
+			Target: &armv1.SetTargetRequest_JointCoordinates{
+				JointCoordinates: &newTarget,
+			},
+		}
+	}
+	return nil
 }

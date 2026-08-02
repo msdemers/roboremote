@@ -70,6 +70,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		oldDomain := selectionDomain(m.armState.GetActiveMode())
 		newDomain := selectionDomain(msg.armState.GetActiveMode())
 		if newDomain != oldDomain {
+			m.controlPage.selectionDomain = newDomain
 			m.controlPage.selected = 0
 			m.controlPage.nSelectable = 0
 			switch newDomain {
@@ -85,7 +86,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case DomainTask:
 				target := msg.armState.GetCartesianTarget()
 				m.controlPage.targetCursor = []float64{
-					target.GetX(), target.GetY(), target.GetZ(),
+					target.GetX(), target.GetY(), target.GetZ(), target.GetQx(), target.GetQy(), target.GetQz(), target.GetQw(),
 				}
 
 			case DomainJoint:
