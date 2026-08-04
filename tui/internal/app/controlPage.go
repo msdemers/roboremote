@@ -145,9 +145,16 @@ func (m model) renderControlModeList() string {
 }
 
 func (m model) renderJointControlPane() string {
+	nQ := int(m.descriptor.GetNq())
 	targetQ := m.armState.GetJointTarget().GetQ()
 	actualQ := m.armState.GetQ().GetQ()
-	nQ := len(targetQ)
+
+	if len(targetQ) != nQ || len(actualQ) != nQ || len(m.controlPage.targetCursor) != nQ {
+		return standardStyle.Render(fmt.Sprintf(
+			"│ Expected %d joint coordinates but got: len cursorQ = %d, targetQ = %d, actualQ = %d",
+			nQ, len(m.controlPage.targetCursor), len(targetQ), len(actualQ)),
+		)
+	}
 
 	labelsCol := lipgloss.JoinVertical(lipgloss.Left, m.jointLabelPerQIndex()...)
 	labelsCol = columnStyle.Render(lipgloss.JoinVertical(lipgloss.Center, titleStyle.Render("Coordinate"), labelsCol))
@@ -168,7 +175,11 @@ func (m model) renderJointControlPane() string {
 		} else {
 			controlStyle = standardStyle
 		}
-		targetCol = append(targetCol, controlStyle.Render(fmt.Sprintf("%.2f", targetQ[i])))
+		if m.controlPage.touched[i] {
+			controlStyle = controlStyle.Foreground(lipgloss.Yellow)
+		}
+
+		targetCol = append(targetCol, controlStyle.Render(fmt.Sprintf("%.2f", m.controlPage.targetCursor[i])))
 		actualCol = append(actualCol, standardStyle.Render(fmt.Sprintf("%.2f", actualQ[i])))
 		errorCol = append(errorCol, standardStyle.Render(fmt.Sprintf("%.2f", qErr)))
 	}
@@ -202,11 +213,19 @@ func (m model) jointLabelPerQIndex() []string {
 func (m model) renderTaskControlPane() string {
 	targetPose := m.armState.GetCartesianTarget()
 	labels, targetAsSlice := cartesianPoseToSlices(targetPose)
+	_, actualAsSlice := cartesianPoseToSlices(m.armState.EndEffector)
+
+	if len(m.controlPage.targetCursor) != len(labels) {
+		return standardStyle.Render(fmt.Sprintf(
+			"│ Expected %d Cartesian Pose elements but got: len cursor = %d, target = %d, actual = %d",
+			len(labels), len(m.controlPage.targetCursor), len(targetAsSlice), len(actualAsSlice)),
+		)
+	}
 
 	styledLabels := make([]string, len(labels))
 	targets := make([]string, len(targetAsSlice))
 
-	for i, val := range targetAsSlice {
+	for i, val := range m.controlPage.targetCursor {
 		prefix := "  "
 		rowStyle := standardStyle
 		if i > 2 {
@@ -217,6 +236,9 @@ func (m model) renderTaskControlPane() string {
 			rowStyle = selectedStyle
 			prefix = markerString + " "
 		}
+		if m.controlPage.touched[i] {
+			rowStyle = rowStyle.Foreground(lipgloss.Yellow)
+		}
 		styledLabels[i] = rowStyle.Render(prefix + labels[i])
 		targets[i] = rowStyle.Render(fmt.Sprintf("%.3f", val))
 	}
@@ -226,7 +248,6 @@ func (m model) renderTaskControlPane() string {
 	targetsCol := lipgloss.JoinVertical(lipgloss.Right, targets...)
 	targetsCol = lipgloss.JoinVertical(lipgloss.Right, titleStyle.Render("Desired"), targetsCol)
 
-	_, actualAsSlice := cartesianPoseToSlices(m.armState.EndEffector)
 	actuals := make([]string, len(actualAsSlice))
 	diffs := make([]string, len(actualAsSlice))
 
@@ -237,7 +258,11 @@ func (m model) renderTaskControlPane() string {
 			diffs[i] = rowStyle.Render("—.——")
 		} else {
 			// TODO: more rigorous handling of SE3/Quaternion diffs and errors
-			diffs[i] = rowStyle.Render(fmt.Sprintf("%.3f", val-targetAsSlice[i]))
+			diffStr := fmt.Sprintf("%.3f", val-targetAsSlice[i])
+			if targetPose == nil {
+				diffStr = "—.——"
+			}
+			diffs[i] = rowStyle.Render(diffStr)
 		}
 		actuals[i] = rowStyle.Render(fmt.Sprintf("%.3f", val))
 
