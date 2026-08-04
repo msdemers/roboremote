@@ -87,10 +87,12 @@
       (`joints.go`), row-per-DOF (not row-per-joint) to handle `Nq != Nv`
       correctly, validated against descriptor bounds/frame-shape before display
 - [x] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
-- [ ] Implement persistent footer — key hints + command status line (ADR-021)
+- [x] Implement persistent footer — key hints + command status line (ADR-021);
+      `✓` fade deferred (needs tea.Tick + stale-tick guard)
 - [x] Implement command pump in internal/simclient (ADR-021)
-- [ ] Implement Control page — mode switcher, jog entry, state strip, reset
-      confirm (ADR-013, ADR-021)
+- [x] Implement Control page — mode switcher, state strip (ADR-013, ADR-021)
+- [x] Implement jog target entry — local cursor + idle resync (ADR-021)
+- [ ] Implement reset confirm — `r` then `y` (ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)
@@ -126,6 +128,10 @@
 - [ ] Update README with public demo URL
 
 ## Open TODOs
+- [ ] Sidecar: pytest asserting INVALID_ARGUMENT for an UNSPECIFIED
+      SetControlMode, so the rejection path can't rot
+- [ ] TUI: absent/short `joint_target` or `cartesian_target` renders an in-pane
+      diagnostic but is not validated — decide whether it is a protocol violation
 - [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — zero
       task-Jacobian column + deliberate null-space decoupling (ADR-020) leaves it
       undamped, and the integrator enforces no joint limits despite descriptor
