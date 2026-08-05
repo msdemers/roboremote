@@ -693,7 +693,8 @@ over one gRPC conn.
   zeros. All values come from the stream's echoed `active_mode`/`active_target`
   — the page reflects the sim, not the client's last send.
 - **Persistent footer is chrome, state-free:** global key hints plus a command
-  status line (`✓` fades; `✗ code — message` sticky until the next command).
+  status line, both sticky until the next command (amended: `✓` no longer
+  fades — the last action taken is worth keeping on screen).
   Rejections render the gRPC status verbatim — no client-side error taxonomy
   for five commands with one rejection point.
 - **Target entry is jog-first:** select DOF/axis, step keys send absolute

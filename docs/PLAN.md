@@ -93,7 +93,7 @@
       (ADR-013, ADR-021)
 - [x] Implement jog target entry — local cursor + idle resync (ADR-021)
 - [x] Implement modal confirm — quit and reset, deadline-guarded timeout (ADR-021)
-- [ ] Footer `✓` fade — reuses the confirm's tick + deadline guard (ADR-021)
+- [x] Confirm dialog timeout indicator — draining bar, frame-driven (ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)
