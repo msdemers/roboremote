@@ -9,15 +9,44 @@ import (
 )
 
 const (
-	jogIdleTime = 200 * time.Millisecond
+	jogIdleTime         = 200 * time.Millisecond
+	confirmationTimeout = 3 * time.Second
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+
 	switch msg := msg.(type) {
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		// always be ready to force-quit the program
+		if msg.String() == "ctrl+c" {
 			return m, tea.Quit
+		}
+
+		// handle any pending confirmation
+		if m.pendingConfirm != confirmNone {
+			switch msg.String() {
+			case "y", "Y":
+				// confirm the pending command
+				switch m.pendingConfirm {
+				case confirmQuit:
+					m.pendingConfirm = confirmNone
+					return m, tea.Quit
+				case confirmReset:
+					m.pendingConfirm = confirmNone
+					return m, submitPoseReset(m.sim)
+				}
+			case "n", "N", "esc":
+				// cancel the pending confirmation
+				m.pendingConfirm = confirmNone
+				return m, nil
+			}
+
+			return m, nil
+		}
+
+		switch msg.String() {
+		case "q":
+			return m.openConfirm(confirmQuit)
 		case "tab":
 			switch m.activePage {
 			case pageMonitor:
@@ -33,7 +62,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case pageControl:
 			return m.updateControlPage(msg)
 		}
+
+	case confirmationExpiredMsg:
+		if time.Now().Before(m.confirmDeadline) {
+			return m, nil
+		}
+		m.pendingConfirm = confirmNone
+		return m, nil
 	case tea.WindowSizeMsg:
+		m.termHeight = msg.Height
 		m.termWidth = msg.Width
 		return m, nil
 	case subscribedMsg:
@@ -115,4 +152,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m model) openConfirm(c confirmation) (model, tea.Cmd) {
+	m.pendingConfirm = c
+	m.confirmDeadline = time.Now().Add(confirmationTimeout)
+	return m, expireConfirmation()
 }

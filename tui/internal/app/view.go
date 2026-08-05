@@ -43,6 +43,8 @@ var (
 	contentBoxStyle = lipgloss.NewStyle().
 			Padding(0, 0).
 			Border(lipgloss.RoundedBorder(), false, true, true, true) // No top border!
+
+	dialogBoxStyle = lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 1)
 )
 
 func (m model) viewTabBar() string {
@@ -126,6 +128,31 @@ func (m model) View() tea.View {
 		fd.latestCommandErr = m.latestResult.Err
 	}
 	s += footerBox(fd)
+
+	// wrap in overlay if a confirmation is pending
+	if m.pendingConfirm != confirmNone {
+		base := lipgloss.NewLayer(s)
+		boxTitle := ""
+		switch m.pendingConfirm {
+		case confirmQuit:
+			boxTitle = titleStyle.Padding(0, 2, 1).Render("Quit?")
+		case confirmReset:
+			boxTitle = titleStyle.Padding(0, 2, 1).Render("Reset robot to default pose?")
+		}
+		promptConfirmStr := standardStyle.Foreground(lipgloss.BrightGreen).Render("[ yes (y) ]") + standardStyle.Foreground(lipgloss.BrightRed).Render("[ no (n/esc) ]")
+		boxStr := lipgloss.JoinVertical(
+			lipgloss.Center,
+			boxTitle,
+			promptConfirmStr,
+		)
+		boxStr = dialogBoxStyle.Render(boxStr)
+		wBox := lipgloss.Width(boxStr)
+		hBox := lipgloss.Height(boxStr)
+		px := max(0, (m.termWidth-wBox)/2)
+		py := max(0, (m.termHeight-hBox)/2)
+		dialog := lipgloss.NewLayer(boxStr).X(px).Y(py).Z(1)
+		s = lipgloss.NewCompositor(base, dialog).Render()
+	}
 
 	v := tea.NewView(s)
 	v.AltScreen = true

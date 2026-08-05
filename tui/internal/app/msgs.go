@@ -5,6 +5,8 @@ import (
 	sim "github.com/msdemers/roboremote/tui/internal/simclient"
 )
 
+type confirmationExpiredMsg struct{}
+
 type subscribedMsg struct {
 	ch  <-chan sim.Frame
 	err error

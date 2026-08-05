@@ -87,12 +87,13 @@
       (`joints.go`), row-per-DOF (not row-per-joint) to handle `Nq != Nv`
       correctly, validated against descriptor bounds/frame-shape before display
 - [x] Implement page switcher — tab bar chrome + per-page keymaps (ADR-021)
-- [x] Implement persistent footer — key hints + command status line (ADR-021);
-      `✓` fade deferred (needs tea.Tick + stale-tick guard)
+- [x] Implement persistent footer — global key hints + command status line (ADR-021)
 - [x] Implement command pump in internal/simclient (ADR-021)
-- [x] Implement Control page — mode switcher, state strip (ADR-013, ADR-021)
+- [x] Implement Control page — mode switcher, state strip, page key hints
+      (ADR-013, ADR-021)
 - [x] Implement jog target entry — local cursor + idle resync (ADR-021)
-- [ ] Implement reset confirm — `r` then `y` (ADR-021)
+- [x] Implement modal confirm — quit and reset, deadline-guarded timeout (ADR-021)
+- [ ] Footer `✓` fade — reuses the confirm's tick + deadline guard (ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 
 ### Containerization (batched — all services; was split across Phases 3–5)

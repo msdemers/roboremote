@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
@@ -14,6 +15,12 @@ func (m model) Init() tea.Cmd {
 		waitForCommandResult(m.sim.Results()),
 	)
 
+}
+
+func expireConfirmation() tea.Cmd {
+	return tea.Tick(confirmationTimeout, func(t time.Time) tea.Msg {
+		return confirmationExpiredMsg{}
+	})
 }
 
 func subscribeToSimStream(simClient *sim.Client, streamRate armv1.StreamRate) tea.Cmd {
@@ -36,6 +43,13 @@ func submitControlMode(c *sim.Client, mode armv1.ControlMode) tea.Cmd {
 func submitControlTarget(c *sim.Client, target *armv1.SetTargetRequest) tea.Cmd {
 	return func() tea.Msg {
 		c.SubmitTarget(target)
+		return nil
+	}
+}
+
+func submitPoseReset(c *sim.Client) tea.Cmd {
+	return func() tea.Msg {
+		c.SubmitReset()
 		return nil
 	}
 }

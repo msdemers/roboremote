@@ -80,6 +80,8 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 		m.controlPage.jogCursor(-1) // jog down one step
 		targetReq := m.controlPage.targetRequest()
 		return m, submitControlTarget(m.sim, targetReq)
+	case keyStr == "r":
+		return m.openConfirm(confirmReset)
 	}
 
 	if nTarget := m.controlPage.nSelectable; nTarget != 0 {
@@ -106,11 +108,15 @@ func (m model) viewControlPage() string {
 	mainBody := lipgloss.JoinHorizontal(lipgloss.Top, modePane, controlsPane)
 	divider := standardStyle.Faint(true).Render(strings.Repeat("─", m.termWidth-2))
 	compactSnapshot := m.renderCompactSnapshot()
+	faintStyle := standardStyle.Foreground(lipgloss.BrightBlack)
+	controlsHints := faintStyle.Render("· ") + "↓j/↑k" + faintStyle.Render(" select · ") + "+/-" + faintStyle.Render(" jog · ") + "r" + faintStyle.Render(" reset pose ·")
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		mainBody,
 		divider,
-		compactSnapshot)
+		compactSnapshot,
+		controlsHints,
+	)
 }
 
 func (m model) renderControlModeList() string {

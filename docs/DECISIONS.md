@@ -664,7 +664,7 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
 
 ## ADR-021: TUI Interaction Architecture — Paged Layout, Jog Control, Command Pump
 
-**Status:** Accepted
+**Status:** Accepted; amended 2026-08-05 (modal confirm surface, key ownership)
 
 **Context:**
 Phase 5's remaining scope turns the TUI from passive monitor into command
@@ -703,15 +703,24 @@ over one gRPC conn.
   later without redesign.
 - **Local jog cursor with resync:** each press increments a client-side cursor
   (correct stacking during bursts; echoed base would drop increments to
-  staleness) and sends absolute. Cursor initializes from echoed `active_target`
-  on mode/page entry and resyncs to the echo whenever idle — honest
-  convergence to sim truth, adopts other writers' targets.
-- **Mode keys immediate, reset confirmed:** number keys switch mode with no
-  confirm — ADR-013's bumpless transfer makes switching always safe, and a
-  dialog would re-litigate that server-side guarantee. Active-mode highlight
-  follows the echoed stream, not the keypress. `ResetConfiguration` alone gets
-  a confirm step (`r`, `y`): it is go-to-shaped — the one key that moves the
-  arm.
+  staleness) and sends absolute. The cursor carries a whole target vector —
+  `SetTargetRequest` has no partial form. It resyncs to the echoed
+  `active_target` whenever jogging is idle, which is also how it initializes:
+  honest convergence to sim truth, adopts other writers' targets.
+- **Mode keys immediate, arm-moving keys confirmed:** number keys switch mode
+  with no confirm — ADR-013's bumpless transfer makes switching always safe,
+  and a dialog would re-litigate that server-side guarantee. Active-mode
+  highlight follows the echoed stream, not the keypress. `ResetConfiguration`
+  gets a confirm step: it is go-to-shaped — the one key that moves the arm.
+- **Confirms are a modal overlay** (amended): a centered dialog composed over
+  the finished view, capturing all keys while pending. The footer already
+  carries command status, and deferred go-to entry is the same shape — the
+  overlay is a surface both use, not machinery for one keystroke. `q` (quit)
+  takes the same treatment; `ctrl+c` stays unconditional.
+- **Key ownership follows blast radius** (amended): global keys act on the
+  client (`q`, `tab`), page keys act on the arm. `r` is therefore a
+  Control-page key, preserving Monitor as a genuinely read-only observer — a
+  property the two-terminal fan-out demo depends on.
 - **Single gRPC edge + command pump:** `internal/stream` grows into the sole
   owner of the `ClientConn` (stream out, unary in). Commands dispatch through
   one serialized pump goroutine (next send after previous ack) with a
@@ -734,3 +743,5 @@ over one gRPC conn.
   resync from the stream.
 - Rate limiting of jog RPCs falls out of pump serialization + coalescing; no
   explicit throttle needed.
+- Three text surfaces with distinct ownership: footer = global hints + command
+  status, page hint row = that page's keys, overlay = confirms.
