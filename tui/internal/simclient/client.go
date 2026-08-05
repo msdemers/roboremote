@@ -9,6 +9,7 @@ import (
 )
 
 type Client struct {
+	address      string
 	conn         *grpc.ClientConn
 	ctx          context.Context
 	stub         armv1.ArmSimServiceClient
@@ -26,6 +27,7 @@ func New(ctx context.Context, address string) (*Client, error) {
 	serviceClient := armv1.NewArmSimServiceClient(serverConn)
 
 	c := Client{
+		address:      address,
 		conn:         serverConn,
 		ctx:          ctx,
 		stub:         serviceClient,
@@ -36,6 +38,10 @@ func New(ctx context.Context, address string) (*Client, error) {
 
 	go c.pump()
 	return &c, nil
+}
+
+func (c Client) Address() string {
+	return c.address
 }
 
 func (c *Client) Close() error {

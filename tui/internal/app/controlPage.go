@@ -109,7 +109,7 @@ func (m model) viewControlPage() string {
 	divider := standardStyle.Faint(true).Render(strings.Repeat("─", m.termWidth-2))
 	compactSnapshot := m.renderCompactSnapshot()
 	faintStyle := standardStyle.Foreground(lipgloss.BrightBlack)
-	controlsHints := faintStyle.Render("· ") + "↓j/↑k" + faintStyle.Render(" select · ") + "+/-" + faintStyle.Render(" jog · ") + "r" + faintStyle.Render(" reset pose ·")
+	controlsHints := "↓j/↑k" + faintStyle.Render(" select · ") + "+/-" + faintStyle.Render(" jog · ") + "r" + faintStyle.Render(" reset pose")
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
 		mainBody,

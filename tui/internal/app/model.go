@@ -39,7 +39,6 @@ var pageTypeToLabel = map[page]string{
 var pageOrder = []page{pageMonitor, pageControl}
 
 type model struct {
-	address         string
 	streamRate      armv1.StreamRate
 	sim             *sim.Client
 	lifecycle       lifecycle

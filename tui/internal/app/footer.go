@@ -26,15 +26,16 @@ func footerBox(fd footerData) string {
 
 	var resultSymbol, resultMessage string
 	if fd.latestCommandErr == nil {
-		resultSymbol = successSymbol
-		resultMessage = "Success"
+		if fd.latestCommandName != "" {
+			resultSymbol = successSymbol
+		}
 	} else {
 		stat := status.Convert(fd.latestCommandErr)
 		resultSymbol = failureSymbol
-		resultMessage = stat.Code().String() + " - " + stat.Message()
+		resultMessage = ": " + stat.Code().String() + " - " + stat.Message()
 	}
 
-	statusLine := fmt.Sprintf("%s %s: %s", resultSymbol, fd.latestCommandName, resultMessage)
+	statusLine := fmt.Sprintf("%s %s %s", resultSymbol, fd.latestCommandName, resultMessage)
 
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,

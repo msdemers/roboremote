@@ -10,7 +10,7 @@ import (
 
 const (
 	jogIdleTime         = 200 * time.Millisecond
-	confirmationTimeout = 3 * time.Second
+	confirmationTimeout = 8 * time.Second
 )
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

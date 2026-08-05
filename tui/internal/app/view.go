@@ -1,7 +1,9 @@
 package app
 
 import (
+	"math"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -89,7 +91,7 @@ func (m model) View() tea.View {
 
 	s += headerBox(headerData{
 		lifecycle:  m.lifecycle,
-		address:    m.address,
+		address:    m.sim.Address(),
 		descriptor: m.descriptor,
 		streamRate: m.streamRate,
 		armState:   m.armState,
@@ -133,16 +135,29 @@ func (m model) View() tea.View {
 	if m.pendingConfirm != confirmNone {
 		base := lipgloss.NewLayer(s)
 		boxTitle := ""
+		boxTitleStyle := standardStyle.Bold(true)
 		switch m.pendingConfirm {
 		case confirmQuit:
-			boxTitle = titleStyle.Padding(0, 2, 1).Render("Quit?")
+			boxTitle = boxTitleStyle.Render("Quit?")
 		case confirmReset:
-			boxTitle = titleStyle.Padding(0, 2, 1).Render("Reset robot to default pose?")
+			boxTitle = boxTitleStyle.Render("Reset robot to default pose?")
 		}
-		promptConfirmStr := standardStyle.Foreground(lipgloss.BrightGreen).Render("[ yes (y) ]") + standardStyle.Foreground(lipgloss.BrightRed).Render("[ no (n/esc) ]")
+
+		yesPrompt := "[ yes (y) ]"
+		noPrompt := "[ no (n/esc) ]"
+		confirmStyle := standardStyle.Width(max(lipgloss.Width(yesPrompt), lipgloss.Width(noPrompt)))
+		promptConfirmStr := confirmStyle.Foreground(lipgloss.BrightGreen).Align(lipgloss.Left).Render(yesPrompt) + " " + confirmStyle.Foreground(lipgloss.BrightRed).Align(lipgloss.Right).Render(noPrompt)
+
+		barWidth := lipgloss.Width(promptConfirmStr)
+		timeFractionRemaining := time.Until(m.confirmDeadline).Seconds() / confirmationTimeout.Seconds()
+		filledWidth := int(math.Round(float64(barWidth) * timeFractionRemaining))
+		filledWidth = max(0, min(barWidth, filledWidth))
+		timeoutBar := strings.Repeat("░", barWidth-filledWidth) + strings.Repeat("█", filledWidth)
+
 		boxStr := lipgloss.JoinVertical(
 			lipgloss.Center,
 			boxTitle,
+			timeoutBar,
 			promptConfirmStr,
 		)
 		boxStr = dialogBoxStyle.Render(boxStr)
