@@ -46,3 +46,8 @@ for i in range(10):
     print(f"--- q = {q}")
     print("   eigen values of Lambda = inv(J_pos @ M_inv @ J_pos.T):")
     pretty_print_row(lams)
+
+print("model.rotorInertia = ", model.rotorInertia)
+print("model.damping = ", model.damping)
+print("model.lowerPositionLimit = ", model.lowerPositionLimit)
+print("model.upperPositionLimit = ", model.upperPositionLimit)
