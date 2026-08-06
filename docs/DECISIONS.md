@@ -746,3 +746,43 @@ over one gRPC conn.
   explicit throttle needed.
 - Three text surfaces with distinct ownership: footer = global hints + command
   status, page hint row = that page's keys, overlay = confirms.
+
+---
+
+## ADR-022: Joint Limits as a Plant-Layer Kinematic Clamp
+
+**Status:** Accepted
+
+**Context:**
+The sidecar enforces no joint limits though the model carries finite ones —
+the gripper winds to ~131k rad. Three layers could own the constraint: the
+integrator, the control laws, or the plant. Pinocchio offers no clamp; it
+models limits as `JointLimitConstraintModel`, a unilateral constraint resolved
+by `constraintDynamics` on the same solver path as contacts.
+
+**Decision:**
+Limits are a property of the plant, enforced in `Simulator.tick` between
+integration and publish. `integrator.step` stays a pure integrator and the
+controllers stay unaware — one enforcement point serves all five modes.
+
+The mechanism is a rigid inelastic stop: clamp `q` to the model's position
+limits and kill velocity at an active limit. Pinocchio assigns infinite limits
+to any coordinate of a joint with `nq_j != nv_j`, so a coordinate-wise clamp
+is manifold-safe by construction rather than by our own case analysis.
+
+Penalty-spring limits are rejected: semi-implicit Euler requires `k < 4m/dt²`,
+and the gripper's `1.613e-05` inertia — the same property that forced ADR-020's
+null-space decoupling — caps a limit spring near 65 N·m/rad, too soft to read
+as rigid. A clamp has no stability bound.
+
+`JointLimitConstraintModel` is deferred. It is the modeling-correct route and
+would open contacts for ADR-003's MuJoCo fast-follow, but it replaces `pin.aba`
+and puts a complementarity solve inside the 1 ms loop.
+
+**Consequences:**
+- The stop is an approximation, not a model: it discards overshoot and the
+  corresponding energy with no accounting.
+- Limit enforcement is invisible to the existing integrator tests, which
+  exercise `integrator.step` directly. Coverage moves up to `Simulator.tick`.
+- Bounding `q` does not damp the gripper; the dissipation defect is separate
+  and still open.

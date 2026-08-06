@@ -133,11 +133,11 @@
       SetControlMode, so the rejection path can't rot
 - [ ] TUI: absent/short `joint_target` or `cartesian_target` renders an in-pane
       diagnostic but is not validated — decide whether it is a protocol violation
-- [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — zero
-      task-Jacobian column + deliberate null-space decoupling (ADR-020) leaves it
-      undamped, and the integrator enforces no joint limits despite descriptor
-      carrying them. Needs some combination of joint-limit enforcement, damping,
-      or friction in the sidecar.
+- [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
+      defects behind one symptom, split below (ADR-020 context)
+  - [ ] Enforce joint limits in the plant per ADR-022
+  - [ ] Per-joint viscous damping — undecided, blocked on instrumenting the
+        free-spin to separate numerical injection from Coriolis pumping
 - [ ] V2: User-placeable sensor nodes (position/attitude/velocity), physics-side
       world pose + spatial velocity, add/remove lifecycle (deferred per ADR-012)
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
