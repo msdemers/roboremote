@@ -136,8 +136,9 @@
 - [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
       defects behind one symptom, split below (ADR-020 context)
   - [x] Enforce joint limits in the plant per ADR-022
-  - [ ] Per-joint viscous damping — undecided, blocked on instrumenting the
-        free-spin to separate numerical injection from Coriolis pumping
+  - [ ] Uniform viscous damping in the plant per ADR-023
+- [ ] Sidecar: implicit damping term per ADR-023 deferral — removes the
+      `d·dt/M < 2` bound and would admit physical STS3215 values
 - [ ] Sidecar: finish lint/typecheck setup — ruff + pyright config (pyright
       `extraPaths` for the generated stubs) and a Makefile `lint` target
 - [ ] Sidecar: clear the 48 existing ruff/pyright violations (chore, repo-wide)

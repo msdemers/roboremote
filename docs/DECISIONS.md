@@ -786,3 +786,39 @@ and puts a complementarity solve inside the 1 ms loop.
   exercise `integrator.step` directly. Coverage moves up to `Simulator.tick`.
 - Bounding `q` does not damp the gripper; the dissipation defect is separate
   and still open.
+
+---
+
+## ADR-023: Uniform Viscous Damping as a Numerical Regularizer
+
+**Status:** Accepted
+
+**Context:**
+The model supplies no joint damping, so nothing dissipates energy. ADR-020
+leaves the gripper without control authority, so any velocity it acquires
+persists — the second defect behind the free-spin that ADR-022 bounded but did
+not remove. Physical damping is unavailable: the STS3215's is roughly an order
+of magnitude beyond what explicit integration admits at the gripper's inertia
+and a 1 ms step.
+
+**Decision:**
+Apply uniform viscous damping in the plant, folded into the applied torque. It
+is a force law and belongs in the equations of motion, unlike ADR-022's limits,
+which project the result after integration. It applies in every control mode —
+a plant property that varied by mode would make each mode a different robot.
+
+The coefficient is a numerical regularizer sized for the gripper, not a measured
+servo parameter. Uniform rather than inertia-scaled, which would equalize decay
+times but write a fictional profile into a field meaning real damping.
+
+`JOINT_PD_COMPENSATED` does not cancel it and the published `tau` carries
+commanded actuation only (ADR-010) — commanded actuation and total system
+forces differ in any real mechanism.
+
+Implicit treatment of the damping term is deferred; it lifts the stability
+bound and would admit physical values.
+
+**Consequences:**
+- Computed torque no longer feedback-linearizes exactly.
+- `GRAVITY_COMP` is where damping is observable; every other mode damps harder
+  through control.
