@@ -135,9 +135,12 @@
       diagnostic but is not validated — decide whether it is a protocol violation
 - [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
       defects behind one symptom, split below (ADR-020 context)
-  - [ ] Enforce joint limits in the plant per ADR-022
+  - [x] Enforce joint limits in the plant per ADR-022
   - [ ] Per-joint viscous damping — undecided, blocked on instrumenting the
         free-spin to separate numerical injection from Coriolis pumping
+- [ ] Sidecar: finish lint/typecheck setup — ruff + pyright config (pyright
+      `extraPaths` for the generated stubs) and a Makefile `lint` target
+- [ ] Sidecar: clear the 48 existing ruff/pyright violations (chore, repo-wide)
 - [ ] V2: User-placeable sensor nodes (position/attitude/velocity), physics-side
       world pose + spatial velocity, add/remove lifecycle (deferred per ADR-012)
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)

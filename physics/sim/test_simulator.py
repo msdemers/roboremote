@@ -142,3 +142,21 @@ def test_snapshot_is_frozen(so101_model):
     start_snapshot = sim.get_snapshot()
     with pytest.raises(FrozenInstanceError):
         start_snapshot.t = 0.3
+
+def test_sim_respects_joint_limits(so101_model):
+    model: pin.Model = so101_model
+    dt = 0.001
+    n_steps = 1000
+
+    upper_limit_config = np.copy(model.upperPositionLimit)
+
+    sim = simulator.Simulator(model, dt, controllers.JointPdController(target=upper_limit_config+0.1), upper_limit_config-0.1, np.zeros(model.nv))
+
+    for _ in range(n_steps):
+        sim.tick()
+
+    ee_pose_at_limit = forward.end_effector_pose(model, sim.data, upper_limit_config)
+    ee_pose_last = sim.ee_pose
+
+    assert np.allclose(ee_pose_last.homogeneous, ee_pose_at_limit.homogeneous, 0.0, 1e-9), "final pose should closely match pose at upper joint limit"
+

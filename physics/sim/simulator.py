@@ -1,4 +1,4 @@
-from . import integrator, status
+from . import integrator, status, model_limits
 from control import controllers
 from kinematics import forward
 from dataclasses import dataclass
@@ -47,11 +47,12 @@ class Simulator:
         with self._lock:
             model, q, v, dt, controller = self.model, self.q, self.v, self.dt, self.controller
         tau = controller.compute(model, self.data, q, v)
-        q_next, v_next = integrator.step(model, self.data, q, v, tau, dt)
-        ee_pose = forward.end_effector_pose(model, self.data, q_next)
+        q_step, v_step = integrator.step(model, self.data, q, v, tau, dt)
+        q_clipped, v_clipped = model_limits.clip_joint_rom(model, q_step, v_step)
+        ee_pose = forward.end_effector_pose(model, self.data, q_clipped)
         with self._lock:
-            self.q = q_next
-            self.v = v_next
+            self.q = q_clipped
+            self.v = v_clipped
             self.tau = tau
             self.ee_pose = ee_pose
             self.t += dt
