@@ -807,9 +807,12 @@ is a force law and belongs in the equations of motion, unlike ADR-022's limits,
 which project the result after integration. It applies in every control mode —
 a plant property that varied by mode would make each mode a different robot.
 
-The coefficient is a numerical regularizer sized for the gripper, not a measured
-servo parameter. Uniform rather than inertia-scaled, which would equalize decay
-times but write a fictional profile into a field meaning real damping.
+The coefficient is a numerical regularizer, derived from the timestep and the
+model's smallest inertia rather than measured from a servo. It is therefore
+**simulation state, not model state**: it lives on the `Simulator` and never in
+`model.damping`, which means real joint damping in URDF and MJCF and is left
+free to hold it. Uniform rather than inertia-scaled, which would equalize decay
+times at the cost of a fictional damping profile.
 
 `JOINT_PD_COMPENSATED` does not cancel it and the published `tau` carries
 commanded actuation only (ADR-010) — commanded actuation and total system
