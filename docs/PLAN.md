@@ -133,10 +133,10 @@
       SetControlMode, so the rejection path can't rot
 - [ ] TUI: absent/short `joint_target` or `cartesian_target` renders an in-pane
       diagnostic but is not validated — decide whether it is a protocol violation
-- [ ] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
+- [x] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
       defects behind one symptom, split below (ADR-020 context)
   - [x] Enforce joint limits in the plant per ADR-022
-  - [ ] Uniform viscous damping in the plant per ADR-023
+  - [x] Uniform viscous damping in the plant per ADR-023
 - [ ] Sidecar: implicit damping term per ADR-023 deferral — removes the
       `d·dt/M < 2` bound and would admit physical STS3215 values
 - [ ] Sidecar: finish lint/typecheck setup — ruff + pyright config (pyright

@@ -29,8 +29,8 @@ class SimSnapshot:
         )
 
 class Simulator:
-    def __init__(self, model, dt, controller: controllers.Controller | None = None, q0=None, v0=None):
-        self.model = model
+    def __init__(self, model, dt, controller: controllers.Controller | None = None, q0=None, v0=None, alpha=0.1):
+        self.model = model.copy()
         self.data = model.createData()
         self.dt = dt
         self.controller = controllers.GravityCompensationController() if controller is None else controller
@@ -40,20 +40,23 @@ class Simulator:
         self.sim_status = status.SimStatus.IDLE
         self.t = 0.0
         self.tau = np.zeros(model.nv)
+        self.numerical_damping = alpha*2*np.min(np.diag(pin.crba(model, model.createData(), self.q)))/self.dt
         self._stop = threading.Event()
         self._lock = threading.Lock()
 
     def tick(self):
         with self._lock:
             model, q, v, dt, controller = self.model, self.q, self.v, self.dt, self.controller
-        tau = controller.compute(model, self.data, q, v)
+        tau_cmd = controller.compute(model, self.data, q, v)
+        tau_numerical_damping = -self.numerical_damping * v
+        tau = tau_cmd + tau_numerical_damping
         q_step, v_step = integrator.step(model, self.data, q, v, tau, dt)
         q_clipped, v_clipped = model_limits.clip_joint_rom(model, q_step, v_step)
         ee_pose = forward.end_effector_pose(model, self.data, q_clipped)
         with self._lock:
             self.q = q_clipped
             self.v = v_clipped
-            self.tau = tau
+            self.tau = tau_cmd
             self.ee_pose = ee_pose
             self.t += dt
         

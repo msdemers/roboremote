@@ -1,5 +1,6 @@
 from . import simulator, integrator
 from control import controllers
+from dynamics.dynamics import compute_system_energy
 from sim.status import ControlMode
 from kinematics import forward
 import numpy as np
@@ -160,3 +161,18 @@ def test_sim_respects_joint_limits(so101_model):
 
     assert np.allclose(ee_pose_last.homogeneous, ee_pose_at_limit.homogeneous, 0.0, 1e-9), "final pose should closely match pose at upper joint limit"
 
+def test_sim_integration_damping_dissipates(so101_model):
+    model: pin.Model = so101_model
+    dt = 0.001
+    n_steps = 10000
+
+    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController(), q0=model.lowerPositionLimit, v0=np.ones(model.nv)*np.pi/20.0)
+
+    initial_ke = pin.computeKineticEnergy(sim.model, sim.data, sim.q, sim.v)
+
+    for _ in range(n_steps):
+        sim.tick()
+
+    final_ke = pin.computeKineticEnergy(sim.model, sim.data, sim.q, sim.v)
+
+    assert final_ke < initial_ke, "simulation system energy did not dissipate over time"
