@@ -2,6 +2,4 @@
 *.log
 **/__pycache__
 **/*.pyc
-proto/gen/python/
-proto/gen/go/roboremote/
-physics/.venv
+.venv/
