@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "roboremote-proto"
+version = "0.1.0"
+description = "protobuf and grpc stubs for communicating across roboremote"
+requires-python = ">=3.12"
+dependencies = [
+    "grpcio >= 1.82.1",
+    "protobuf >= 7.35.1",
+]
+
+[dependency-groups]
+codegen = [
+    "grpcio-tools == 1.82.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["roboremote"]
