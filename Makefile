@@ -30,7 +30,8 @@ proto-check: proto
 	fi
 
 run-physics:
-	cd physics && PYTHONPATH=../proto/gen/python uv run python main.py
+	cd physics && uv run python main.py
+
 test:
 	cd server && go test ./...
 	cd tui && go test ./...
