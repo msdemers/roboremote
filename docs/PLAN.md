@@ -100,12 +100,15 @@
 - [ ] Durable generated-code distribution (ADR-017), remaining scope:
   - [x] Go: `proto/gen/go` resolved via `go.work` for server + tui (landed during
         Phase 5 tui setup, ahead of the batched containerization pass)
-  - [ ] Python: package `roboremote-proto` as an installable dependency
+  - [x] Python: package `roboremote-proto` as an installable dependency
   - [ ] Docker build context set to repo root so stubs land in images
-- [ ] Physics sidecar image (headless — Pinocchio needs no display; MODEL_PATH env)
+- [ ] Root `.dockerignore` (prerequisite for a root build context)
+- [ ] Physics: `MODEL_PATH` env replaces the repo-relative URDF walk; drop dead `PHYSICS_PORT`
+- [ ] Physics sidecar image (headless; single-stage uv; URDF baked, meshes excluded)
 - [ ] Sim server image (scratch-based, CGO-free per ADR-002)
 - [ ] TUI client image (TTY support)
-- [ ] docker-compose.yml: server↔sidecar internal network, env-var addresses (ADR-002/006)
+- [ ] docker-compose.yml: drop `viz` (Rerun is Phase 6), server↔sidecar internal
+      network, env-var addresses (ADR-002/006)
 - [ ] Verify `docker compose up` brings the full stack up cleanly
 - [ ] Commit: "build: containerize full stack"
 
