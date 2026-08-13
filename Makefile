@@ -42,10 +42,10 @@ run-physics:
 	cd physics && uv run python main.py
 
 run-server:
-	cd server && go run ./cmd/server
+	cd server && go run ./cmd/roboserver
 
 run-tui:
-	cd tui && go run ./cmd/tui
+	cd tui && go run ./cmd/robotui
 
 test:
 	cd server && go test ./...
