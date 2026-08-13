@@ -95,6 +95,8 @@
 - [x] Implement modal confirm — quit and reset, deadline-guarded timeout (ADR-021)
 - [x] Confirm dialog timeout indicator — draining bar, frame-driven (ADR-021)
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
+- [ ] Deferred polish (not v1-blocking): map gRPC status codes to human badge text
+      (`describeErr`, pure, beside `disconnectedBadge`); raw error to debug.log
 
 ### Containerization (batched — all services; was split across Phases 3–5)
 - [ ] Durable generated-code distribution (ADR-017), remaining scope:
