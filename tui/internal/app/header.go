@@ -30,19 +30,20 @@ func streamingBadge(rate armv1.StreamRate, state *armv1.ArmState) string {
 	)
 }
 
-func disconnectedBadge(err error) string {
+func disconnectedBadge(address string, addressSource string, err error) string {
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Render(
-		fmt.Sprintf("DISCONNECTED: %v", err))
+		fmt.Sprintf("DISCONNECTED from address: %s (%s): %v", address, addressSource, err))
 }
 
 type headerData struct {
-	lifecycle  lifecycle
-	address    string
-	descriptor *armv1.ModelDescriptor
-	streamRate armv1.StreamRate
-	armState   *armv1.ArmState
-	err        error
-	termWidth  int
+	lifecycle     lifecycle
+	address       string
+	addressSource string
+	descriptor    *armv1.ModelDescriptor
+	streamRate    armv1.StreamRate
+	armState      *armv1.ArmState
+	err           error
+	termWidth     int
 }
 
 func headerBox(hd headerData) string {
@@ -55,7 +56,7 @@ func headerBox(hd headerData) string {
 	case stateStreaming:
 		statusBadge += streamingBadge(hd.streamRate, hd.armState)
 	case stateDisconnected:
-		statusBadge += disconnectedBadge(hd.err)
+		statusBadge += disconnectedBadge(hd.address, hd.addressSource, hd.err)
 	}
 
 	line1 := lipgloss.JoinHorizontal(lipgloss.Center, title, " | ", hd.address, " | ", hd.descriptor.GetModelName())

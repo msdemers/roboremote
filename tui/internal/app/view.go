@@ -90,13 +90,14 @@ func (m model) View() tea.View {
 	s := ""
 
 	s += headerBox(headerData{
-		lifecycle:  m.lifecycle,
-		address:    m.sim.Address(),
-		descriptor: m.descriptor,
-		streamRate: m.streamRate,
-		armState:   m.armState,
-		err:        m.err,
-		termWidth:  m.termWidth,
+		lifecycle:     m.lifecycle,
+		address:       m.sim.Address(),
+		addressSource: m.addressSource,
+		descriptor:    m.descriptor,
+		streamRate:    m.streamRate,
+		armState:      m.armState,
+		err:           m.err,
+		termWidth:     m.termWidth,
 	}) + "\n"
 
 	s += m.viewTabBar() + "\n"

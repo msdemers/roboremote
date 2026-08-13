@@ -41,6 +41,7 @@ var pageOrder = []page{pageMonitor, pageControl}
 type model struct {
 	streamRate      armv1.StreamRate
 	sim             *sim.Client
+	addressSource   string
 	lifecycle       lifecycle
 	pendingConfirm  confirmation
 	confirmDeadline time.Time
@@ -55,10 +56,11 @@ type model struct {
 	err             error
 }
 
-func New(client *sim.Client, streamRate armv1.StreamRate) tea.Model {
+func New(client *sim.Client, streamRate armv1.StreamRate, addressSource string) tea.Model {
 	return model{
 		sim:             client,
 		streamRate:      streamRate,
+		addressSource:   addressSource,
 		lifecycle:       stateConnecting,
 		pendingConfirm:  confirmNone,
 		confirmDeadline: time.Time{},
