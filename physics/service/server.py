@@ -1,5 +1,4 @@
-import os
-import pathlib
+import os, sys
 import time, threading
 import pinocchio as pin
 from sim.simulator import Simulator
@@ -12,15 +11,16 @@ from .servicer import ArmSimServicer
 
 
 def serve():
-    bind_address = os.getenv("ROBOREMOTE_PHYSICS_BIND_ADDR") #, "[::]:50052")
-    model_path = pathlib.Path(__file__).parents[2] / "models/so101/so101_new_calib.urdf"
-    model_path = os.getenv("ROBOREMOTE_MODEL_PATH")
-    model_name = "SO-101 Manipulator Arm"
+    bind_address = _require_env("ROBOREMOTE_PHYSICS_BIND_ADDR", "localhost:50052")
+
+    model_path = _require_env("ROBOREMOTE_MODEL_PATH", "models/so101/so101_new_calib.urdf")
+
     model_version = "placeholder for hash"
     dt = 0.001
 
     # start physics sim daemon
     model: pin.Model = pin.buildModelFromUrdf(str(model_path))
+    model_name = model.name
     sim = Simulator(model, dt)
     threading.Thread(target=sim.run, daemon=True).start()
 
@@ -44,3 +44,10 @@ def serve():
     except KeyboardInterrupt:
         sim.stop()
         server.stop(2.0) # wait a grave period to allow sim loop to stop
+
+
+def _require_env(name: str, example: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        sys.exit(f"CRITICAL: {name} is not set. Example: export {name}={example}")
+    return value

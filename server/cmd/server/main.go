@@ -81,7 +81,7 @@ func (s *armServer) Subscribe(
 func main() {
 	physicsAddr := os.Getenv("ROBOREMOTE_PHYSICS_ADDR")
 	if physicsAddr == "" {
-		physicsAddr = "localhost:50052"
+		log.Fatalf("ROBOREMOTE_PHYSICS_ADDR is not set (example: localhost:50052)")
 	}
 
 	physConn, err := grpc.NewClient(physicsAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -102,7 +102,7 @@ func main() {
 
 	serverAddr := os.Getenv("ROBOREMOTE_SERVER_BIND_ADDR")
 	if serverAddr == "" {
-		serverAddr = ":50051"
+		log.Fatalf("ROBOREMOTE_SERVER_BIND_ADDR is not set (example: localhost:50051)")
 	}
 
 	listener, err := net.Listen("tcp", serverAddr)
