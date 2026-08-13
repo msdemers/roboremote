@@ -1,3 +1,12 @@
+ifeq (,$(wildcard .env))
+$(error .env not found — run: cp .env.example .env)
+endif
+include .env
+
+ROBOREMOTE_MODEL_PATH := $(CURDIR)/$(ROBOREMOTE_MODEL_PATH)
+
+export $(filter ROBOREMOTE_%,$(.VARIABLES))
+
 .PHONY: up down build proto proto-check test run-physics
 
 up:

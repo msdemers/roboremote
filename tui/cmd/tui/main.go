@@ -24,7 +24,7 @@ func main() {
 		defer f.Close()
 	}
 
-	relayAddr := os.Getenv("SERVER_ADDR")
+	relayAddr := os.Getenv("ROBOREMOTE_SERVER_ADDR")
 	if relayAddr == "" {
 		relayAddr = "localhost:50051"
 	}

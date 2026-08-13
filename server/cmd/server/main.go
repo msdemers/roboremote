@@ -79,7 +79,7 @@ func (s *armServer) Subscribe(
 }
 
 func main() {
-	physicsAddr := os.Getenv("PHYSICS_SIDECAR_ADDR")
+	physicsAddr := os.Getenv("ROBOREMOTE_PHYSICS_ADDR")
 	if physicsAddr == "" {
 		physicsAddr = "localhost:50052"
 	}
@@ -100,7 +100,7 @@ func main() {
 		}
 	}()
 
-	serverAddr := os.Getenv("SERVER_ADDR")
+	serverAddr := os.Getenv("ROBOREMOTE_SERVER_BIND_ADDR")
 	if serverAddr == "" {
 		serverAddr = ":50051"
 	}

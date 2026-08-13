@@ -12,10 +12,9 @@ from .servicer import ArmSimServicer
 
 
 def serve():
-    port = os.getenv("PHYSICS_PORT", "50052")
-    bind_address = f"[::]:{port}"
-    bind_address = os.getenv("PHYSICS_ADDR", "[::]:50052")
+    bind_address = os.getenv("ROBOREMOTE_PHYSICS_BIND_ADDR") #, "[::]:50052")
     model_path = pathlib.Path(__file__).parents[2] / "models/so101/so101_new_calib.urdf"
+    model_path = os.getenv("ROBOREMOTE_MODEL_PATH")
     model_name = "SO-101 Manipulator Arm"
     model_version = "placeholder for hash"
     dt = 0.001
