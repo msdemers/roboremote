@@ -1,0 +1,19 @@
+# Ignore version control
+**/.git
+**/.gitignore
+
+# Ignore log files and build outputs
+**/*.log*
+**/__pycache__
+
+# Ignore environment and secret files
+**/.env
+# **/.env.example
+**/.venv
+
+# Ignore editor and OS metadata
+**/.DS_Store
+**/.vscode
+
+# Ignore large model assets
+models/so101/assets
