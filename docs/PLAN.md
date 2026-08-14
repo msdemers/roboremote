@@ -107,7 +107,11 @@
 - [ ] Root `.dockerignore` (prerequisite for a root build context)
 - [ ] Physics: `MODEL_PATH` env replaces the repo-relative URDF walk; drop dead `PHYSICS_PORT`
 - [ ] Physics sidecar image (headless; single-stage uv; URDF baked, meshes excluded)
+- [ ] Physics: `grpc_health.v1` health service (not a raw TCP probe) backs the
+      Docker healthcheck; `server`'s `depends_on` gates on `condition: service_healthy`
 - [ ] Sim server image (scratch-based, CGO-free per ADR-002)
+- [ ] Server: no healthcheck yet (scratch has no shell to run one) — TUI
+      operator retries manually if it races server's startup
 - [ ] TUI client image (TTY support)
 - [ ] docker-compose.yml: drop `viz` (Rerun is Phase 6), server↔sidecar internal
       network, env-var addresses (ADR-002/006)

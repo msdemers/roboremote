@@ -85,7 +85,7 @@ tendon models, or broader ecosystem integration is needed.
 
 ## ADR-004: SO-ARM100 / SO101 as V1 Robot Model
 
-**Status:** Accepted
+**Status:** Accepted; amended 2026-08-14 (asset distribution: bake, not mount)
 
 **Context:**
 Project requires a real robot arm model with full inertial properties, mesh
@@ -106,8 +106,15 @@ as canonical URDF and MJCF respectively).
 - Used as primary reference platform in Hugging Face LeRobot -- active
   community, abundant reference implementations
 - 5-DOF + gripper is simpler than UR5e's 6-DOF, appropriate for V1 scope
-- Models committed to `models/so101/`, mounted read-only into physics and
-  viz containers via Docker Compose volume
+- Models committed to `models/so101/` (amended): the `physics` image **bakes
+  in** `so101_new_calib.urdf` at build time rather than a Compose volume
+  mount. The original mount was sized for two consumers (`physics` and
+  `viz`) sharing the mesh tree; `viz`/Rerun is Phase 6 and out of this
+  containerization pass, and `physics` only calls `buildModelFromUrdf`
+  (URDF only, a few KB) — `buildGeomFromUrdf` (meshes, ~15MB) is never
+  invoked. A baked image is also self-contained for the ADR-006 Fly.io V2
+  target, which has no host filesystem to bind-mount from. Local/future viz
+  asset distribution is deferred, unresolved
 
 ---
 
@@ -304,9 +311,11 @@ the sidecar's `SimSnapshot{t, q, v, tau}` is already shaped.
   (hash). Units are conveyed by `JointType` (revolute→rad, prismatic→m), not an
   explicit units field. Final message names finalized in ADR-015.
 - **Model geometry/meshes are NOT shipped over gRPC.** Clients load them
-  out-of-band (volume mount per ADR-004) and verify against
-  `model_name`/`model_version`. Asset distribution for genuinely remote
-  clients is deferred to V2.
+  out-of-band and verify against `model_name`/`model_version`. Mechanism is
+  local-only for now — the `physics` image bakes in the URDF (ADR-004,
+  amended) rather than mounting it, and viz asset distribution is deferred,
+  unresolved. Asset distribution for genuinely remote clients is deferred to
+  V2.
 
 **Consequences:**
 - Wire shape mirrors the sidecar's snapshot and Pinocchio's `nq`/`nv`; no

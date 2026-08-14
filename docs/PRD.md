@@ -40,7 +40,10 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 - Public demo URL
 
 ## Success Criteria (v1)
-- `docker compose up` starts all three services cleanly
+- `docker compose up` starts physics and server cleanly; TUI attaches
+  separately (a TTY app can't be silently backgrounded like the other two) —
+  either `docker compose run --rm tui` (no Go toolchain needed) or natively
+  via `go run ./tui/cmd/robotui` / a built `robotui`
 - TUI displays live joint state updating in real time
 - User can switch control policies from TUI
 - User can set joint-space and task-space (Cartesian) targets from the TUI
