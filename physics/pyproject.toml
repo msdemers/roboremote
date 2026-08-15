@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "grpcio>=1.82.1",
+    "grpcio-health-checking>=1.83.0",
     "grpcio-reflection>=1.82.1",
     "numpy>=2.4.6",
     "pin>=4.0.0",

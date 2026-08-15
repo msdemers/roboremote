@@ -5,6 +5,7 @@ from sim.simulator import Simulator
 from concurrent import futures
 import grpc
 from grpc_reflection.v1alpha import reflection
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 from roboremote.arm.v1 import arm_pb2
 from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
 from .servicer import ArmSimServicer
@@ -29,16 +30,27 @@ def serve():
     pb_grpc.add_ArmSimServiceServicer_to_server(ArmSimServicer(sim, model_name, model_version), server)
     server.add_insecure_port(bind_address)
 
-    # register schema in order to support reflection service
+    # register the health-check service
+    health_servicer = health.HealthServicer()
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+
+    # register primary, reflection, and health-check services
     service_names = (
         arm_pb2.DESCRIPTOR.services_by_name["ArmSimService"].full_name,
         reflection.SERVICE_NAME,
+        health_pb2.DESCRIPTOR.services_by_name["Health"].full_name,
     )
     reflection.enable_server_reflection(service_names, server)
 
+    # set the health-check status
+    health_servicer.set("", health_pb2.HealthCheckResponse.SERVING)
+    
     # service lifecycle
     server.start()
     print(f"physics sidecar listening on {bind_address}")
+
+    
+
     try:
         server.wait_for_termination()
     except KeyboardInterrupt:
