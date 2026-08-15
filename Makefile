@@ -41,6 +41,9 @@ proto-check: proto
 run-physics:
 	cd physics && uv run python main.py
 
+run-physics-healthcheck:
+	cd physics && uv run python healthcheck.py
+
 run-server:
 	cd server && go run ./cmd/roboserver
 
