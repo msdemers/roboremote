@@ -1,33 +1,27 @@
 services:
   physics:
-    build: ./physics
-    volumes:
-      - ./models:/models:ro
+    build: { context: ., dockerfile: physics/Dockerfile }
     environment:
-      PHYSICS_ADDR: "${PHYSICS_ADDR}"
-    expose:
-      - "${PHYSICS_PORT}"
-
-  viz:
-    build: ./viz
-    volumes:
-      - ./models:/models:ro
+      ROBOREMOTE_PHYSICS_BIND_ADDR: "${ROBOREMOTE_PHYSICS_BIND_ADDR}"
+      ROBOREMOTE_PHYSICS_PORT: "${ROBOREMOTE_PHYSICS_PORT}"
 
   server:
-    build: ./server
+    build: { context: ., dockerfile: server/Dockerfile}
     environment:
-      PHYSICS_SIDECAR_ADDR: "${PHYSICS_SIDECAR_ADDR}"
-      SERVER_ADDR: "${SERVER_ADDR}"
+      ROBOREMOTE_PHYSICS_ADDR: "physics:${ROBOREMOTE_PHYSICS_PORT}"
+      ROBOREMOTE_SERVER_BIND_ADDR: "${ROBOREMOTE_SERVER_BIND_ADDR}"
     ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
+      - "${ROBOREMOTE_SERVER_PORT}:${ROBOREMOTE_SERVER_PORT}"
     depends_on:
-      - physics
+      physics:
+        condition: service_healthy
 
   tui:
-    build: ./tui
+    build: { context: ., dockerfile: tui/Dockerfile}
     environment:
-      SERVER_ADDR: "${TUI_SERVER_ADDR}"
+      ROBOREMOTE_SERVER_ADDR: "server:${ROBOREMOTE_SERVER_PORT}"
     depends_on:
       - server
     stdin_open: true
     tty: true
+    profiles: ["tui"]
