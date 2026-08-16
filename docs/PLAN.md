@@ -98,25 +98,17 @@
 - [ ] Deferred polish (not v1-blocking): map gRPC status codes to human badge text
       (`describeErr`, pure, beside `disconnectedBadge`); raw error to debug.log
 
-### Containerization (batched — all services; was split across Phases 3–5)
-- [ ] Durable generated-code distribution (ADR-017), remaining scope:
-  - [x] Go: `proto/gen/go` resolved via `go.work` for server + tui (landed during
-        Phase 5 tui setup, ahead of the batched containerization pass)
-  - [x] Python: package `roboremote-proto` as an installable dependency
-  - [ ] Docker build context set to repo root so stubs land in images
-- [ ] Root `.dockerignore` (prerequisite for a root build context)
-- [ ] Physics: `MODEL_PATH` env replaces the repo-relative URDF walk; drop dead `PHYSICS_PORT`
-- [ ] Physics sidecar image (headless; single-stage uv; URDF baked, meshes excluded)
-- [ ] Physics: `grpc_health.v1` health service (not a raw TCP probe) backs the
-      Docker healthcheck; `server`'s `depends_on` gates on `condition: service_healthy`
-- [ ] Sim server image (scratch-based, CGO-free per ADR-002)
-- [ ] Server: no healthcheck yet (scratch has no shell to run one) — TUI
-      operator retries manually if it races server's startup
-- [ ] TUI client image (TTY support)
-- [ ] docker-compose.yml: drop `viz` (Rerun is Phase 6), server↔sidecar internal
-      network, env-var addresses (ADR-002/006)
-- [ ] Verify `docker compose up` brings the full stack up cleanly
-- [ ] Commit: "build: containerize full stack"
+### Containerization (batched — all services; was split across Phases 3–5) (Complete)
+- [x] Durable generated-code distribution (ADR-017)
+- [x] Root `.dockerignore`, build context = repo root for all services
+- [x] Physics: `MODEL_PATH` baked into image (ADR-004 amended)
+- [x] Physics sidecar image (uv, URDF baked, no meshes)
+- [x] Physics: `grpc_health.v1` healthcheck; `server` gates on `condition: service_healthy`
+- [x] Sim server image (scratch-based, CGO-free, ADR-002); no healthcheck yet
+- [x] TUI client image; `profiles:` + `docker compose run --rm tui` (PRD amended)
+- [x] docker-compose.yml: drop `viz`, internal network, env-var addresses
+- [x] Verified `docker compose up` + `docker compose run --rm tui`
+- [x] Committed as per-slice commits, not one "containerize full stack"
 
 ## Phase 6: Dev Visualizer (Rerun)
 - [ ] Install Rerun Python SDK in physics environment
