@@ -2,6 +2,7 @@ import logging, os, sys
 import numpy as np
 import pinocchio as pin
 from pinocchio.visualize import ViserVisualizer
+import viser
 import grpc
 from roboremote.arm.v1 import arm_pb2
 from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
@@ -34,9 +35,27 @@ def run_client():
                 package_dirs=[os.path.dirname(model_path)]
             )
 
+            # build and load pinocchio's wrapper around Viser
             visualizer = ViserVisualizer(model, collision_model, visual_model)
             visualizer.initViewer(open=True)
+            
+            # direct access to Viser's ViserServer
+            vServer: viser.ViserServer = visualizer.viewer
+            
+            # configure viewer details
+            vServer.gui.configure_theme(show_logo=False)
+            vServer.initial_camera.position = 0.5 * np.ones(3)
+            vServer.scene.add_grid(
+                "/grid",
+                width=2,
+                height=2,
+                position=(
+                    0.0, 0.0, 0.0,
+                )
+            )
+            vServer.gui.main_panel.minimize()
             visualizer.loadViewerModel(rootNodeName=model.name)
+            
 
             for envelope in response_stream:
                 arm_state: arm_pb2.ArmState = envelope.state
