@@ -1,4 +1,4 @@
-import logging, os, sys
+import argparse, logging, os, sys
 import numpy as np
 import pinocchio as pin
 from pinocchio.visualize import ViserVisualizer
@@ -10,14 +10,20 @@ from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
 DEFAULT_REFRESH_RATE = arm_pb2.STREAM_RATE_60
 
 def run_client():
-    dial_address = _require_env("ROBOREMOTE_SERVER_ADDR", "localhost:50051")
-    model_path = _require_env("ROBOREMOTE_MODEL_PATH", "models/so101/so101_new_calib.urdf")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("address", nargs="?", default=None)
+    parser.add_argument("--rate", type=int, choices=[30, 60, 120], default=60)
+    args = parser.parse_args()
 
+    dial_address, address_source = resolve_addr(args)
+    model_path = os.getenv("ROBOREMOTE_MODEL_PATH", "models/so101/so101_new_calib.urdf")
+    stream_rate = resolve_refresh_rate(args)
 
+    
     with grpc.insecure_channel(dial_address) as channel:
         stub = pb_grpc.ArmSimServiceStub(channel)
 
-        request = arm_pb2.SubscribeRequest(rate=DEFAULT_REFRESH_RATE)
+        request = arm_pb2.SubscribeRequest(rate=stream_rate)
 
         print("Subscribing to stream updates from roboremote server...")
         
@@ -65,6 +71,24 @@ def run_client():
         except grpc.RpcError as e:
             logging.error(f"gRPC stream connection failed: {e.code()} - {e.details()}")
             sys.exit(1)
+
+def resolve_addr(args) -> tuple[str, str]:
+    if args.address:
+        return args.address, "argument"
+    if env_addr := os.getenv("ROBOREMOTE_SERVER_ADDR"):
+        return env_addr, "ROBOREMOTE_SERVER_ADDR"
+    return "localhost:50051", "default"
+
+def resolve_refresh_rate(args) -> arm_pb2.StreamRate:
+    match args.rate:
+        case 30:
+            return arm_pb2.STREAM_RATE_30
+        case 60:
+            return arm_pb2.STREAM_RATE_60
+        case 120:
+            return arm_pb2.STREAM_RATE_120
+        case _:
+            return arm_pb2.STREAM_RATE_60
 
 def _require_env(name: str, example: str) -> str:
     value = os.getenv(name)
