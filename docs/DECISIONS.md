@@ -120,7 +120,8 @@ as canonical URDF and MJCF respectively).
 
 ## ADR-005: Rerun as Dev-Only Visualizer for V1 (Three.js for V2)
 
-**Status:** Accepted
+**Status:** Accepted; amended 2026-08-17 (V1 tool changed to Viser via
+Pinocchio's `ViserVisualizer`, not Rerun)
 
 **Context:**
 Validating physics sidecar output requires visual feedback during development.
@@ -141,12 +142,17 @@ interactive 3D visualizer (Three.js) to V2. The TUI client is the sole
 user-facing interaction mechanism for V1.
 
 **Consequences:**
-- Rerun bridge is ~100 lines of Python, negligible implementation cost
 - Immediate visual validation of physics sidecar output during development
-- Rerun is not part of the end-user Docker Compose stack -- dev tool only
+- Dev visualizer is not part of the end-user Docker Compose stack -- dev tool only
 - Interactive tugging deferred to V2 as a separate, properly scoped product
 - V1 capstone story is cleaner: containerized real-time gRPC sim with Go TUI
 - V2 Three.js visualizer becomes its own compelling portfolio piece
+
+**Amendment (2026-08-17):** Switched V1 tool from Rerun to Pinocchio's
+`ViserVisualizer` -- reuses `physics/`'s own engine for q→pose, no custom FK
+code required. Chosen over `MeshcatVisualizer` for active maintenance (meshcat
+last released 2021). `viz/` stays strictly passive despite Viser's
+drag-interaction support -- unused until V2's Three.js scope is designed.
 
 ---
 

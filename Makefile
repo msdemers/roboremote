@@ -7,7 +7,7 @@ ROBOREMOTE_MODEL_PATH := $(CURDIR)/$(ROBOREMOTE_MODEL_PATH)
 
 export $(filter ROBOREMOTE_%,$(.VARIABLES))
 
-.PHONY: up down build proto proto-check test run-physics run-server run-tui
+.PHONY: up down build proto proto-check test run-physics run-server run-tui run-viz
 
 up:
 	docker compose up --build
@@ -49,6 +49,9 @@ run-server:
 
 run-tui:
 	cd tui && go run ./cmd/robotui
+
+run-viz:
+	cd viz && uv run python main.py
 
 test:
 	cd server && go test ./...

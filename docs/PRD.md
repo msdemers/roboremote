@@ -1,7 +1,7 @@
 # roboremote — Product Requirements Document
 
 ## Overview
-roboremote is an open source robotic arm simulation platform with real-time remote interaction. A physics sidecar simulates arm dynamics; a Go gRPC server distributes state to multiple simultaneous clients; clients include a TUI monitor and a dev-only Rerun visualizer; an interactive 3D visualizer is planned for V2.
+roboremote is an open source robotic arm simulation platform with real-time remote interaction. A physics sidecar simulates arm dynamics; a Go gRPC server distributes state to multiple simultaneous clients; clients include a TUI monitor and a dev-only Viser visualizer; an interactive 3D visualizer is planned for V2.
 
 ## Goals
 - Demonstrate real-time gRPC streaming architecture in Go
@@ -31,7 +31,7 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 1. Physics sidecar (Python, Pinocchio or MuJoCo) — dynamics, FK, control policies
 2. Sim server (Go, gRPC) — state distribution, client fan-out, command routing
 3. TUI client (Go, Bubble Tea) — monitor connection, state, control
-4. Dev-only Visualizer (Python, Rerun) — passive 3D rendering for development and debugging; not included in end-user Docker Compose stack
+4. Dev-only Visualizer (Python, Pinocchio `ViserVisualizer`) — passive 3D rendering for development and debugging; not included in end-user Docker Compose stack
 5. Docker Compose orchestration — single `docker compose up` runs full stack
 
 ## V2 Deliverables (DevOps capstone or fast follow)
@@ -47,4 +47,4 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 - TUI displays live joint state updating in real time
 - User can switch control policies from TUI
 - User can set joint-space and task-space (Cartesian) targets from the TUI
-- Dev visualizer (Rerun) renders live arm state for development validation
+- Dev visualizer (Viser) renders live arm state for development validation

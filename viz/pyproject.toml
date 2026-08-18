@@ -1,0 +1,25 @@
+[project]
+name = "viz"
+version = "0.1.0"
+description = "a minimal vizualizer for rendering the robot simulation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "grpcio>=1.82.1",
+    "numpy>=2.4.6",
+    "pin>=4.0.0",
+    "roboremote-proto",
+    "viser>=1.1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.411",
+    "pytest>=9.1.1",
+    "ruff>=0.16.2",
+]
+
+[tool.uv.sources]
+roboremote-proto = { path="../proto/gen/python", editable = true }
+[tool.pytest.ini_options]
+pythonpath = ["."]
