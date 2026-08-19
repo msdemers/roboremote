@@ -31,7 +31,7 @@ SO-ARM100 / SO101 (5 DOF + gripper)
 1. Physics sidecar (Python, Pinocchio or MuJoCo) — dynamics, FK, control policies
 2. Sim server (Go, gRPC) — state distribution, client fan-out, command routing
 3. TUI client (Go, Bubble Tea) — monitor connection, state, control
-4. Dev-only Visualizer (Python, Pinocchio `ViserVisualizer`) — passive 3D rendering for development and debugging; not included in end-user Docker Compose stack
+4. Dev-only Visualizer (Python, Pinocchio `ViserVisualizer`) — passive 3D rendering for development and debugging; opt-in via `docker compose --profile viz`
 5. Docker Compose orchestration — single `docker compose up` runs full stack
 
 ## V2 Deliverables (DevOps capstone or fast follow)

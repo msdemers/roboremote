@@ -85,7 +85,8 @@ tendon models, or broader ecosystem integration is needed.
 
 ## ADR-004: SO-ARM100 / SO101 as V1 Robot Model
 
-**Status:** Accepted; amended 2026-08-14 (asset distribution: bake, not mount)
+**Status:** Accepted; amended 2026-08-14 (asset distribution: bake, not mount);
+amended 2026-08-19 (viz asset distribution resolved)
 
 **Context:**
 Project requires a real robot arm model with full inertial properties, mesh
@@ -113,8 +114,9 @@ as canonical URDF and MJCF respectively).
   containerization pass, and `physics` only calls `buildModelFromUrdf`
   (URDF only, a few KB) — `buildGeomFromUrdf` (meshes, ~15MB) is never
   invoked. A baked image is also self-contained for the ADR-006 Fly.io V2
-  target, which has no host filesystem to bind-mount from. Local/future viz
-  asset distribution is deferred, unresolved
+  target, which has no host filesystem to bind-mount from. Viz asset
+  distribution resolved 2026-08-19: un-excluded from `.dockerignore`,
+  baked the same way via `viz`'s own image
 
 ---
 
@@ -153,6 +155,12 @@ user-facing interaction mechanism for V1.
 code required. Chosen over `MeshcatVisualizer` for active maintenance (meshcat
 last released 2021). `viz/` stays strictly passive despite Viser's
 drag-interaction support -- unused until V2's Three.js scope is designed.
+
+**Amendment (2026-08-19):** `viz` containerized and added to `docker-compose.yml`
+as an opt-in `profiles: ["viz"]` service -- supersedes the "not part of the
+end-user stack" consequence above. Mesh assets un-excluded from `.dockerignore`
+for `physics`+`viz` (ADR-004); cost accepted as negligible for `physics`, free
+for `server`/`tui` (multi-stage builds never copy them into the final image).
 
 ---
 
