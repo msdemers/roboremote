@@ -23,7 +23,6 @@ func (c *Client) Subscribe(streamRate armv1.StreamRate) (<-chan Frame, error) {
 			envelope, err := upstream.Recv()
 			if err != nil {
 				frames <- Frame{Err: err} // since this blocks, needs fix for tear down and reconnect logic to ever land
-				close(frames)
 				return
 			}
 			frames <- Frame{Envelope: envelope}
