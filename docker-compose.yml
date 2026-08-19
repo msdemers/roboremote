@@ -25,3 +25,10 @@ services:
     stdin_open: true
     tty: true
     profiles: ["tui"]
+
+  viz:
+    build: { context: ., dockerfile: viz/Dockerfile }
+    environment:
+      - ROBOREMOTE_SERVER_ADDR=server:${ROBOREMOTE_SERVER_PORT}
+    ports: ["8080:8080"]
+    profiles: ["viz"]

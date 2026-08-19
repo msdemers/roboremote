@@ -13,6 +13,7 @@ def run_client():
     parser = argparse.ArgumentParser()
     parser.add_argument("address", nargs="?", default=None)
     parser.add_argument("--rate", type=int, choices=[30, 60, 120], default=60)
+    parser.add_argument("--open", action="store_true", default=False)
     args = parser.parse_args()
 
     dial_address, address_source = resolve_addr(args)
@@ -43,7 +44,7 @@ def run_client():
 
             # build and load pinocchio's wrapper around Viser
             visualizer = ViserVisualizer(model, collision_model, visual_model)
-            visualizer.initViewer(open=True)
+            visualizer.initViewer(open=False, host="0.0.0.0", port=8080, loadModel=True)
             
             # direct access to Viser's ViserServer
             vServer: viser.ViserServer = visualizer.viewer
@@ -61,6 +62,10 @@ def run_client():
             )
             vServer.gui.main_panel.minimize()
             visualizer.loadViewerModel(rootNodeName=model.name)
+
+            if args.open:
+                import webbrowser
+                webbrowser.open("http://localhost:8080")
             
 
             for envelope in response_stream:

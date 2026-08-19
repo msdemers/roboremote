@@ -15,5 +15,3 @@
 **/.DS_Store
 **/.vscode
 
-# Ignore large model assets
-models/so101/assets

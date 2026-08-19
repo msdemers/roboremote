@@ -110,13 +110,13 @@
 - [x] Verified `docker compose up` + `docker compose run --rm tui`
 - [x] Committed as per-slice commits, not one "containerize full stack"
 
-## Phase 6: Dev Visualizer (Viser via Pinocchio; ADR-005 amended)
+## Phase 6: Dev Visualizer (Viser via Pinocchio; ADR-005 amended) (Complete)
 - [x] Scaffold `viz/` as its own uv project
-- [ ] Implement gRPC state consumer (minimal, no reconnect handling)
-- [ ] Implement Viser rendering bridge
-- [ ] Local-vs-remote viewer target-picking (mirrors TUI's `resolveAddr()`)
-- [ ] Verify live arm state renders correctly
-- [ ] Commit: "feat: add meshcat dev visualizer bridge"
+- [x] Implement gRPC state consumer (minimal, no reconnect handling)
+- [x] Implement Viser rendering bridge
+- [x] Address/rate CLI overrides (mirrors TUI's `resolveAddr()`)
+- [x] Verify live arm state renders correctly, driven live via TUI commands
+- [x] Committed as per-slice commits (not one "feat: add viser dev visualizer bridge")
 
 ## Phase 7: Integration and Polish
 - [ ] Full stack smoke test via docker compose up

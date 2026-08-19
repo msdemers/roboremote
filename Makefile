@@ -51,7 +51,7 @@ run-tui:
 	cd tui && go run ./cmd/robotui
 
 run-viz:
-	cd viz && uv run python main.py
+	cd viz && uv run python main.py --open
 
 test:
 	cd server && go test ./...
