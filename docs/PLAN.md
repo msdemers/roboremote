@@ -97,6 +97,9 @@
 - [x] Committed as per-slice commits (not one "feat: tui client v1")
 - [ ] Deferred polish (not v1-blocking): map gRPC status codes to human badge text
       (`describeErr`, pure, beside `disconnectedBadge`); raw error to debug.log
+- [ ] `simclient.Subscribe`'s error-frame send (stream.go) is unguarded — blocks if
+      abandoned; unreachable today (no reconnect), same bucket as Phase 4's pump
+      reconnection gap
 
 ### Containerization (batched — all services; was split across Phases 3–5) (Complete)
 - [x] Durable generated-code distribution (ADR-017)
@@ -119,7 +122,7 @@
 - [x] Committed as per-slice commits (not one "feat: add viser dev visualizer bridge")
 
 ## Phase 7: Integration and Polish
-- [ ] Full stack smoke test via docker compose up
+- [x] Full stack smoke test; fixed Dockerfile COPY layering and a stream double-close panic
 - [ ] Write README.md (purpose, quickstart, architecture diagram)
 - [ ] Record demo (gif or video)
 - [ ] Commit: "docs: readme, architecture diagram, and demo"
