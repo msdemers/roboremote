@@ -68,6 +68,25 @@ docker compose down
 
 ## What you can do
 
+| Mode | What you set | What to watch |
+|---|---|---|
+| `[1] GRAVITY_COMP` | No input | holds current pose in the workspace |
+| `[2] TASK_PD_COMPENSATED` | Desired Cartesian position | converges to target position and holds bias-free |
+| `[3] TASK_PD_RAW` | Desired Cartesian position | settles below target |
+| `[4] JOINT_PD_COMPENSATED` | Desired joint coordinates | converges to desired pose and holds bias-free |
+| `[5] JOINT_PD_RAW` | Desired joint coordinates | settles below desired pose |
+
+*Raw modes apply pure proportional-derivative control torques. Compensated modes add computed torque for mitigating biases due to gravity and inertial nonlinearities.*
+
+Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select, `-`/`+` to adjust, `r` to reset to default pose
+
+> [!NOTE]
+> The TUI footer always shows the available keys for the current page/view.
+
+![Arm holding position with compensation on, drooping when disabled, then recovering when enabled again. ](docs/media/compensation.gif)
+
+*Same target throughout. Compensation off at t = xx.x s — tracking error opens as gravity and inertial terms go uncancelled — back on at t = yy.y s.*
+
 ## How it works
 
 ## Design decisions
