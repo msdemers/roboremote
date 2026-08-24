@@ -88,12 +88,13 @@ Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select
 *Same target throughout. Compensation off at t = xx.x s — tracking error opens as gravity and inertial terms go uncancelled — back on at t = yy.y s.*
 
 ## How it works
-
+<!-- Diagram Note: The theme is pinned because GitHub's mermaid rederer ignores the user's system color scheme (light vs dark mode); don't "fix" it until github fixes their end. -->
 ```mermaid
 ---
 config:
   layout: dagre
   look: neo
+  theme: redux
   flowchart:
     curve: linear
 ---
@@ -102,8 +103,7 @@ flowchart LR
     simulation
     controllers`"] --> |state · 120 Hz| serv["`****Server****`"
     decimation
-    fanout hub
-    ]
+    fanout hub`"]
     serv --> |commands| phys
     serv --> |state · 60 Hz| tui1[TUI]@{ shape: rounded }
     serv --> |state · 30 Hz| tui2[TUI]@{ shape: rounded }
@@ -116,6 +116,8 @@ flowchart LR
         viz
     end
 ```
+
+*All links are gRPC: state on server-streams, commands as unary RPCs. Physics simulates at 1 kHz (1 ms integrator steps) and publishes at 120 Hz. The relay server decimates the state-stream to each client's requested rate (30/60/120 Hz, default 60).*
 
 ## Design decisions
 
