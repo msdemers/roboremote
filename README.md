@@ -101,7 +101,7 @@ config:
 flowchart LR
     phys["`****Physics****
     simulation
-    controllers`"] --> |state · 120 Hz| serv["`****Server****`"
+    controllers`"] --> |state · 120 Hz| serv["`****Server****
     decimation
     fanout hub`"]
     serv --> |commands| phys
