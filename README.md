@@ -94,23 +94,23 @@ Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select
 config:
   layout: dagre
   look: neo
-  theme: redux
+  theme: neutral
   flowchart:
     curve: linear
 ---
 flowchart LR
-    phys["`**Physics**
+    phys["`****Physics****
     simulation
-    controllers`"] --> |state| serv["`**Server**`"
+    controllers`"] --> |state · 120 Hz| serv["`****Server****`"
     decimation
-    fanout
+    fanout hub
     ]
     serv --> |commands| phys
-    serv --> |state| tui1[TUI]@{ shape: rounded }
-    serv --> |state| tui2[TUI]@{ shape: rounded }
+    serv --> |state · 60 Hz| tui1[TUI]@{ shape: rounded }
+    serv --> |state · 30 Hz| tui2[TUI]@{ shape: rounded }
     tui1 --> |commands| serv
     tui2 --> |commands| serv
-    serv --> |state| viz[3D Viz]@{ shape: rounded }
+    serv --> |state · 120 Hz| viz[3D Viz]@{ shape: rounded }
     subgraph clients[Clients]
         tui1
         tui2
