@@ -94,7 +94,6 @@ Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select
 config:
   layout: dagre
   look: neo
-  theme: neutral
   flowchart:
     curve: linear
 ---
