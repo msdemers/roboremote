@@ -89,6 +89,35 @@ Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select
 
 ## How it works
 
+```mermaid
+---
+config:
+  layout: dagre
+  look: neo
+  theme: redux
+  flowchart:
+    curve: linear
+---
+flowchart LR
+    phys["`**Physics**
+    simulation
+    controllers`"] --> |state| serv["`**Server**`"
+    decimation
+    fanout
+    ]
+    serv --> |commands| phys
+    serv --> |state| tui1[TUI]@{ shape: rounded }
+    serv --> |state| tui2[TUI]@{ shape: rounded }
+    tui1 --> |commands| serv
+    tui2 --> |commands| serv
+    serv --> |state| viz[3D Viz]@{ shape: rounded }
+    subgraph clients[Clients]
+        tui1
+        tui2
+        viz
+    end
+```
+
 ## Design decisions
 
 ## Limitations
