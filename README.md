@@ -134,7 +134,12 @@ This project's ongoing Architecture Decision Records (ADRs) are ordered records 
 ### Major Decisions
 
 **[ADR-018](docs/DECISIONS.md#adr-018-setpoint-smoothing-is-out-of-scope-for-the-sidecar): Defer target-setpoint smoothing for a future optimal-control layer.**
+
 Smoothing is trajectory generation, which requires its own tick-evolving state and would break the simulator's pure `(q, v, setpoint) → tau` shape. The burden of torque discontinuities falls on the layer calling `SetTarget`, where it should be.
+
+**[ADR-019](docs/DECISIONS.md#adr-019-control-laws--computed-torque-and-inertia-weighted-pd): Joint-space control laws employ computed-torque control and inertia-weighted PD.**
+
+Gains are parameterized as `kp = ωn²`, `kd = 2ζωn` with `ωn=50`, `ζ=1`, so one scalar pair works across every joint with inertia-independent, uniform stability. This prevents the lightest linkages (gripper) from diverging to NaN within a few ticks.
 
 ## Limitations
 
