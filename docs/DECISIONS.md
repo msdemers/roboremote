@@ -283,7 +283,7 @@ fast, publish at 120 Hz). The Go server is a pure fan-out relay and
 - No network hop inside the integration loop (preserves ADR-007); cadence is
   owned by the sidecar.
 - Decimation only drops frames, never invents them: client rate ≤ publish
-  rate, and only integer divisors are offered — no temporal aliasing/beating.
+  rate, and only integer divisors are offered — no temporal jitter/beating.
 - The `StreamRate` enum makes invalid rates unrepresentable by construction.
 - Latest-value-wins semantics: a slow or stalled consumer never accrues a
   backlog.

@@ -149,6 +149,14 @@ Task-space modes implement position-only operational-space control because the S
 
 The damping constant is derived from the simulation timestep and the model's smallest inertia (gripper jaw) rather than the measured loss from the servo motors. STS3215 motor damping is an order of magnitude larger than 1 ms explicit integration admits at the gripper's inertia. Consequently, feedback-control modes damp harder than the regularizer damping, which is only observable under `GRAVITY_COMP` mode.
 
+**[ADR-009](docs/DECISIONS.md#adr-009-sidecar-publish-cadence-and-per-client-decimation): Server acts as a pure fan-out relay and decimates per subscriber with latest-value-wins slots.**
+
+The latest-value-wins slot comes with the cost of slow clients silently missing frames, but guarantees that a slow subscriber never stalls the pump or degrades every other client. Declaring fixed, client-selected rates as integer divisors of the physics publish-rate guarantees that decimation never invents or interpolates simulation states, and suffers no jitter or beating.
+
+**[ADR-013](docs/DECISIONS.md#adr-013-control-modes-and-targeting): Switching control mode only happens through explicit `SetControlMode`, never inferred from the gRPC `SetTarget`'s `oneof` shape.**
+
+`CartesianPose` and `Coordinates` each fit more than one task-space mode or joint-space mode respectively, meaning `SetTarget` can't discriminate. `SetControlMode` calls also reset the target to the current state for bumpless transfer.
+
 ## Limitations
 
 ## Roadmap
