@@ -145,6 +145,10 @@ Gains are parameterized as `kp = ωn²`, `kd = 2ζωn` with `ωn=50`, `ζ=1`, so
 
 Task-space modes implement position-only operational-space control because the SO-101's 5-DOF system is kinematically deficient for full SE(3) tracking (6-DOF). Inertia-weighted, position-only tracking with constant Tikhonov regularization and damping over the position-task null-space allows one PD gain combo to serve both compensated and uncompensated modes. 
 
+**[ADR-023](docs/DECISIONS.md#adr-023-uniform-viscous-damping-as-a-numerical-regularizer): The simulation plant applies viscous damping as a regularizer.**
+
+The damping constant is derived from the simulation timestep and the model's smallest inertia (gripper jaw) rather than the measured loss from the servo motors. STS3215 motor damping is an order of magnitude larger than 1 ms explicit integration admits at the gripper's inertia. Consequently, feedback-control modes damp harder than the regularizer damping, which is only observable under `GRAVITY_COMP` mode.
+
 ## Limitations
 
 ## Roadmap
