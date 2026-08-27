@@ -159,6 +159,26 @@ The latest-value-wins slot comes with the cost of slow clients silently missing 
 
 ## Limitations
 
+**The transport stack is unencrypted, unauthenticated gRPC (no TLS).**
+
+Any client that can reach the published address and port can command the arm simulation. That's acceptable as a lean transport choice that keeps prototyping frictionless on a trusted Compose network. If driving simulation on a remote box, tunnel it over SSH or a VPN.
+
+**The services and clients lack graceful shutdown or reconnect handling.**
+
+If the physics service restarts, the pump never reconnects and the server hub goes silent. Restarting physics requires restarting the server and clients as well. Additionally, exiting with `log.Fatalf` skips any deferred cleanup on the way out. 
+
+**First-order integrator is marginally stable.**
+
+The semi-implicit Euler integrator demonstrated ~7% energy band at the 1 ms step size in undamped free-swing tests. This is fine with numerical damping regularizing the plant plus the gravity compensation and PD controllers adding effective damping. Passive, free-swing cases instantiating `Simulator` with zero damping will destabilize over seconds.
+
+**Damping provides numerical regularization instead of physical realism.**
+
+The system damping added to the plant is derived for numerical stability. The actual STS3215 motor losses are roughly an order of magnitude larger and would cause simulation instability with the current integrator. Sim-to-real inaccuracies will persist until upgrading the integrator to implicit damping treatment unlocks physical values.
+
+**Task-space control is position-only.**
+
+You can command where the end effector goes but not how it's oriented at its target. Any job that depends on tool attitude, such as insertion at an angle or pouring, isn't expressible in today's task-space implementation. Oriented poses are still reachable through the joint-space modes.
+
 ## Roadmap
 
 ## Development
