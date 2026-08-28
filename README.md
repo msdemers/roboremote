@@ -180,6 +180,11 @@ The system damping added to the plant is derived for numerical stability. The ac
 You can command where the end effector goes but not how it's oriented at its target. Any job that depends on tool attitude, such as insertion at an angle or pouring, isn't expressible in today's task-space implementation. Oriented poses are still reachable through the joint-space modes.
 
 ## Roadmap
+- Cloud deployment with public demo URL
+- Interactive visualizer with target dragging and physical tugging on linkages
+- User-defined sensor nodes to monitor kinematics and dynamics measures
+- Model picker for quick switching between prevalent commercial and educational robots
+- Transport Layer Security and authentication for untrusted networks
 
 ## Development
 
