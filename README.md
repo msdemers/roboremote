@@ -187,6 +187,83 @@ You can command where the end effector goes but not how it's oriented at its tar
 - Transport Layer Security and authentication for untrusted networks
 
 ## Development
+### Prerequisites
+| Tool | Needed for | Install |
+|---|---|---|
+| Go 1.26+ | building `server` and `tui` (version pinned in [`go.work`](go.work)) | [go.dev/doc/install](https://go.dev/doc/install) |
+| uv | Python env and deps for `physics` and `viz` | [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) |
+| buf | regenerating proto stubs (`make proto`) | [buf.build/docs](https://buf.build/docs/installation) |
+
+### Running Locally
+In addition to using Docker Compose, you can run each service/client manually from your terminal.
+
+**Terminal 1: Physics**
+
+```bash
+make run-physics
+```
+
+```text
+cd physics && uv run python main.py
+=== Starting Physics Sidecar ===
+physics sidecar listening on 0.0.0.0:50052
+```
+
+> [!TIP]
+> To change the physics bind address and service port, edit `ROBOREMOTE_PHYSICS_BIND_ADDR` and `ROBOREMOTE_PHYSICS_PORT` in your local copy of `.env`.
+
+**Terminal 2: Relay Server**
+
+```bash
+make run-server
+```
+
+```text
+cd server && go run ./cmd/roboserver
+Sim relay server is listening on port 0.0.0.0:50051...
+```
+
+> [!TIP]
+> To change the server bind address and service port, edit `ROBOREMOTE_SERVER_BIND_ADDR` and `ROBOREMOTE_SERVER_PORT` in your local copy of `.env`.
+
+**Terminal 3: TUI**
+
+```bash
+make run-tui
+```
+
+> [!TIP]
+> You can also provide the custom address:port for your server setup as a command line argument. For example `go run ./tui/cmd/robotui localhost:50051` or alternatively `go run ./tui/cmd/robotui localhost:50051 -debug` to also write logs to `debug.log`.
+
+**Terminal 4: Viz**
+
+```bash
+make run-viz
+```
+
+```text
+cd viz && uv run python main.py --open
+=== Starting 3D Visualizer ===
+Subscribing to stream updates from roboremote server...
+╭────── viser (listening *:8080) ───────╮
+│             ╷                         │
+│   HTTP      │ http://localhost:8080   │
+│   Websocket │ ws://localhost:8080     │
+│             ╵                         │
+╰───────────────────────────────────────╯
+```
+
+The Viser-based visualizer should auto open in your default browser.
+
+### Testing
+placeholder
+
+### Regerating Protobuf and gRPC 
+placehoder
+
+
+
+
 
 ## Motivation | Rationale | Attribution (Needs final heading title)
 
