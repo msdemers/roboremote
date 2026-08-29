@@ -256,14 +256,67 @@ Subscribing to stream updates from roboremote server...
 The Viser-based visualizer should auto open in your default browser.
 
 ### Testing
-placeholder
+Running all subproject tests at once...
 
-### Regerating Protobuf and gRPC 
-placehoder
+```bash
+make test
+```
 
+...or individually. 
 
+**Physics**
+```bash
+uv run --directory physics pytest
+```
 
+**Server**
+```bash
+go test ./server/...
+```
 
+**TUI**
+```bash
+go test ./tui/...
+```
+
+### Regenerating Protobuf and gRPC 
+To revise or augment roboremote messages and transmission types, you must (1) modify the protobuf contract, (2) regenerate all Python and Go gRPC stubs, and (3) commit all regenerated gRPC stubs. Here is the step-by-step process.
+
+**Modify the Protobuf**
+
+The wire contract lives in one file: [protobuf contract](proto/roboremote/arm/v1/arm.proto). See [ADR-015](docs/DECISIONS.md#adr-015-proto-finalization--naming-and-error-model) which describes the project's proto conventions (e.g. naming, error model, and empty response messages)
+
+**Regenerate the gRPC Stubs**
+
+```bash
+make proto
+```
+
+The above Make target writes generated stubs to `./proto/gen/go` and `./proto/gen/python` respectively. 
+
+> [!NOTE]
+> DO NOT edit these auto-generated files. They serve as a module/package imported by the Python and Go executables.
+
+**Commit the Generated Stubs to git**
+
+This repo version-controls the generated gRPC stubs in order to support running and testing **immediately** upon first clone. If you've run `make proto` as part of your work, you must stage and commit the regenerated stubs before finalizing and sharing. 
+
+> [!NOTE]
+> Before committing, it's good hygiene to ensure that the committed version of the gRPC stubs matches the current proto contract. 
+
+```bash
+make proto-check # regenerates, then errors if the generated stubs aren't committed.
+```
+
+Silence means pass. If the stubs are stale, you'll see:
+
+```text
+DRIFTED - generated proto changed and needs commit
+```
+
+```bash
+git add proto/gen && git commit -m "chore: keep repo gRPC stubs current"
+```
 
 ## Motivation | Rationale | Attribution (Needs final heading title)
 
