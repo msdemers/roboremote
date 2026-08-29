@@ -124,6 +124,9 @@
 ## Phase 7: Integration and Polish
 - [x] Full stack smoke test; fixed Dockerfile COPY layering and a stream double-close panic
 - [ ] Write README.md (purpose, quickstart, architecture diagram)
+- [ ] Write TUI unit tests — `internal/app` update() is pure; table-driven over
+      mode switching, jog clamping, confirm expiry (today `go test ./tui/...`
+      reports no test files)
 - [ ] Record demo (gif or video)
 - [ ] Commit: "docs: readme, architecture diagram, and demo"
 
