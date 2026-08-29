@@ -44,7 +44,7 @@ def run_client():
 
             # build and load pinocchio's wrapper around Viser
             visualizer = ViserVisualizer(model, collision_model, visual_model)
-            visualizer.initViewer(open=False, host="0.0.0.0", port=8080, loadModel=True)
+            visualizer.initViewer(open=False, host="0.0.0.0", port=8080, loadModel=False)
             
             # direct access to Viser's ViserServer
             vServer: viser.ViserServer = visualizer.viewer
