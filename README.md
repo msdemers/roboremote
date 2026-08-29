@@ -3,13 +3,13 @@
 
 Command an interactive, realtime physics simulation of an SO-101 robotic manipulator. Provide a Cartesian target to track a position with operational-space control or provide joint angles to track a specific robot pose. Toggle nonlinear compensation off to watch tracking error open up as gravity and inertial terms go uncancelled. Attach multiple clients, including the visualizer, to watch your robot whether it's simulated on your local machine or a distant, headless box.
 
-![demo](docs/media/demo.gif)
+![3D visualization and TUI-based control of realtime robotic simulation.](docs/media/demo.gif)
 
 ## Quickstart
 
 Roboremote runs entirely in containers, so you can skip installing its Go, Python, Pinocchio, and gRPC toolchain. You only need [Docker](https://docs.docker.com/get-docker/) with Compose v2.
 
-> [!NOTE] 
+> [!NOTE]
 > Configuration comes from environment variables defined in a required `.env` file at the repo root. Copy the template before your first run to use the default configuration.
 
 ```bash
@@ -83,12 +83,12 @@ Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select
 > [!NOTE]
 > The TUI footer always shows the available keys for the current page/view.
 
-![Arm holding position with compensation on, drooping when disabled, then recovering when enabled again. ](docs/media/compensation.gif)
+![Arm holding position with compensation on, drooping when disabled, then recovering when enabled again.](docs/media/compensation.gif)
 
 *Same target throughout. Compensation off at t = xx.x s — tracking error opens as gravity and inertial terms go uncancelled — back on at t = yy.y s.*
 
-## How it Works
-<!-- Diagram Note: The theme is pinned because GitHub's mermaid rederer ignores the user's system color scheme (light vs dark mode); don't "fix" it until github fixes their end. -->
+## How It Works
+<!-- Diagram Note: The theme is pinned because GitHub's mermaid renderer ignores the user's system color scheme (light vs dark mode); don't "fix" it until github fixes their end. -->
 ```mermaid
 ---
 config:
@@ -131,8 +131,6 @@ Multiple clients, including the TUI and 3D Visualizer clients in this repo, can 
 ## Design Decisions
 This project's ongoing Architecture Decision Records (ADRs) are ordered records of each decision, its context, and its consequences. When decisions change, they appear as amendments to the ADR or a new ADR so the reasoning path stays visible. [DECISIONS.md](docs/DECISIONS.md) contains the history of 23 ADRs.
 
-### Major Decisions
-
 **[ADR-018](docs/DECISIONS.md#adr-018-setpoint-smoothing-is-out-of-scope-for-the-sidecar): Defer target-setpoint smoothing for a future optimal-control layer.**
 
 Smoothing is trajectory generation, which requires its own tick-evolving state and would break the simulator's pure `(q, v, setpoint) → tau` shape. The burden of torque discontinuities falls on the layer calling `SetTarget`, where it should be.
@@ -141,9 +139,9 @@ Smoothing is trajectory generation, which requires its own tick-evolving state a
 
 Gains are parameterized as `kp = ωn²`, `kd = 2ζωn` with `ωn=50`, `ζ=1`, so one scalar pair works across every joint with inertia-independent, uniform stability. This prevents the lightest linkages (gripper) from diverging to NaN within a few ticks.
 
-**[ADR-020](docs/DECISIONS.md#adr-020-task-space-control--position-only-operational-space-v1): Task-space modes track position only with inertial-weighted PD.**
+**[ADR-020](docs/DECISIONS.md#adr-020-task-space-control--position-only-operational-space-v1): Task-space modes track position only with inertia-weighted PD.**
 
-Task-space modes implement position-only operational-space control because the SO-101's 5-DOF system is kinematically deficient for full SE(3) tracking (6-DOF). Inertia-weighted, position-only tracking with constant Tikhonov regularization and damping over the position-task null-space allows one PD gain combo to serve both compensated and uncompensated modes. 
+Task-space modes implement position-only operational-space control because the SO-101's 5-DOF system is kinematically deficient for full SE(3) tracking (6-DOF). Inertia-weighted, position-only tracking with constant Tikhonov regularization and damping over the position-task null-space allows one PD gain combo to serve both compensated and uncompensated modes.
 
 **[ADR-023](docs/DECISIONS.md#adr-023-uniform-viscous-damping-as-a-numerical-regularizer): The simulation plant applies viscous damping as a regularizer.**
 
@@ -165,7 +163,7 @@ Any client that can reach the published address and port can command the arm sim
 
 **The services and clients lack graceful shutdown or reconnect handling.**
 
-If the physics service restarts, the pump never reconnects and the server hub goes silent. Restarting physics requires restarting the server and clients as well. Additionally, exiting with `log.Fatalf` skips any deferred cleanup on the way out. 
+If the physics service restarts, the pump never reconnects and the server hub goes silent. Restarting physics requires restarting the server and clients as well. Additionally, exiting with `log.Fatalf` skips any deferred cleanup on the way out.
 
 **First-order integrator is marginally stable.**
 
@@ -262,7 +260,7 @@ Running all subproject tests at once...
 make test
 ```
 
-...or individually. 
+...or individually.
 
 **Physics**
 ```bash
@@ -279,7 +277,7 @@ go test ./server/...
 go test ./tui/...
 ```
 
-### Regenerating Protobuf and gRPC 
+### Regenerating Protobuf and gRPC
 To revise or augment roboremote messages and transmission types, you must (1) modify the protobuf contract, (2) regenerate all Python and Go gRPC stubs, and (3) commit all regenerated gRPC stubs. Here is the step-by-step process.
 
 **Modify the Protobuf**
@@ -292,17 +290,17 @@ The wire contract lives in one file: [protobuf contract](proto/roboremote/arm/v1
 make proto
 ```
 
-The above Make target writes generated stubs to `./proto/gen/go` and `./proto/gen/python` respectively. 
+The above Make target writes generated stubs to `./proto/gen/go` and `./proto/gen/python` respectively.
 
 > [!NOTE]
 > DO NOT edit these auto-generated files. They serve as a module/package imported by the Python and Go executables.
 
 **Commit the Generated Stubs to git**
 
-This repo version-controls the generated gRPC stubs in order to support running and testing **immediately** upon first clone. If you've run `make proto` as part of your work, you must stage and commit the regenerated stubs before finalizing and sharing. 
+This repo version-controls the generated gRPC stubs in order to support running and testing **immediately** upon first clone. If you've run `make proto` as part of your work, you must stage and commit the regenerated stubs before finalizing and sharing.
 
 > [!NOTE]
-> Before committing, it's good hygiene to ensure that the committed version of the gRPC stubs matches the current proto contract. 
+> Before committing, it's good hygiene to ensure that the committed version of the gRPC stubs matches the current proto contract.
 
 ```bash
 make proto-check # regenerates, then errors if the generated stubs aren't committed.
