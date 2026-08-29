@@ -1,5 +1,6 @@
 import argparse, logging, os, sys
 import numpy as np
+from pathlib import Path
 import pinocchio as pin
 from pinocchio.visualize import ViserVisualizer
 import viser
@@ -17,7 +18,8 @@ def run_client():
     args = parser.parse_args()
 
     dial_address, address_source = resolve_addr(args)
-    model_path = os.getenv("ROBOREMOTE_MODEL_PATH", "models/so101/so101_new_calib.urdf")
+    default_model_path = Path(__file__).parent.parent.resolve() / "models/so101/so101_new_calib.urdf"
+    model_path = Path(os.getenv("ROBOREMOTE_MODEL_PATH") or default_model_path)
     stream_rate = resolve_refresh_rate(args)
 
     
