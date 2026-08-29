@@ -54,8 +54,9 @@ def run_client():
             vServer.initial_camera.position = 0.5 * np.ones(3)
             vServer.scene.add_grid(
                 "/grid",
-                width=2,
-                height=2,
+                infinite_grid=True,
+                cell_size=0.05,
+                section_size=0.25,
                 position=(
                     0.0, 0.0, 0.0,
                 )
