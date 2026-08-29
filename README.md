@@ -238,6 +238,10 @@ make run-tui
 ```bash
 make run-viz
 ```
+or alternatively...
+```bash
+cd viz && uv run python main.py --rate 60 --open # rate can be 30, 60, or 120 Hz
+```
 
 ```text
 cd viz && uv run python main.py --open
