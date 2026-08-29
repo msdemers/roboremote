@@ -318,5 +318,8 @@ DRIFTED - generated proto changed and needs commit
 git add proto/gen && git commit -m "chore: keep repo gRPC stubs current"
 ```
 
-## Motivation | Rationale | Attribution (Needs final heading title)
+## Why This Exists
 
+From computational biomechanics to combat arts, I've been studying human movement for over two decades. My expertise in simulation (OpenSim) and wearables sensing (Core Motion algorithms) shares common foundations with robotics technology: rigid-body dynamics, state estimation, control theory, optimization, and more. A musculoskeletal model is a kinematic chain like a robotic manipulator, and the recursive algorithms (Featherstone) apply in both cases. This repo is one passion project where I tackle concrete robotics applications using tooling from around the robotics ecosystem.
+
+To learn more about my background or discuss biomechanics, robotics, wearables sensing, and artificial intelligence, find me on [LinkedIn](https://www.linkedin.com/in/matthewdemers/).
