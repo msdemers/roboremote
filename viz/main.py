@@ -98,12 +98,6 @@ def resolve_refresh_rate(args) -> arm_pb2.StreamRate:
         case _:
             return arm_pb2.STREAM_RATE_60
 
-def _require_env(name: str, example: str) -> str:
-    value = os.getenv(name)
-    if not value:
-        sys.exit(f"CRITICAL: {name} is not set. Example: export {name}={example}")
-    return value
-
 if __name__ == "__main__":
     print("=== Starting 3D Visualizer ===")
     logging.basicConfig(level=logging.INFO)
