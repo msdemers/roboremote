@@ -177,6 +177,10 @@ The system damping added to the plant is derived for numerical stability. The ac
 
 You can command where the end effector goes but not how it's oriented at its target. Any job that depends on tool attitude, such as insertion at an angle or pouring, isn't expressible in today's task-space implementation. Oriented poses are still reachable through the joint-space modes.
 
+**Rendering performance is verified in Chrome only.**
+
+Safari exhibits intermittent render stalls. Those stalls occur after ~10 seconds without commands, last ~1 second, and are not present in the underlying state stream. If frozen visuals present an issue, use Chrome.
+
 ## Roadmap
 - Cloud deployment with public demo URL
 - Interactive visualizer with target dragging and physical tugging on linkages

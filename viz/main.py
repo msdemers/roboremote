@@ -31,7 +31,6 @@ def run_client():
     model_path = Path(os.getenv("ROBOREMOTE_MODEL_PATH") or default_model_path)
     stream_rate = resolve_refresh_rate(args)
 
-    
     with grpc.insecure_channel(dial_address) as channel:
         stub = pb_grpc.ArmSimServiceStub(channel)
 
@@ -89,8 +88,7 @@ def run_client():
             if args.open:
                 import webbrowser
                 webbrowser.open("http://localhost:8080")
-            
-
+                
             for envelope in response_stream:
                 arm_state: arm_pb2.ArmState = envelope.state
 
@@ -131,7 +129,7 @@ def resolve_refresh_rate(args) -> arm_pb2.StreamRate:
             return arm_pb2.STREAM_RATE_60
 
 def add_end_effector_marker(scene_server, radius):
-    h_marker = scene_server.add_icosphere(
+    h_marker = scene_server.scene.add_icosphere(
         name="end_effector_position",
         radius=radius,
         color=(0.0, 1.0, 0.0),
@@ -159,7 +157,7 @@ def add_target_crosshair(scene_server, axis_length, hollow_radius, thickness):
         [[0, 0, hollow_radius], [0, 0, axis_length]],
         [[0, 0, -hollow_radius], [0, 0, -axis_length]]
     ])
-    h_crosshair = scene_server.add_line_segments(
+    h_crosshair = scene_server.scene.add_line_segments(
         name="target_crosshair",
         points=points,
         colors=(1.0, 0.0, 0.0),
