@@ -8,7 +8,16 @@ import grpc
 from roboremote.arm.v1 import arm_pb2
 from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
 
-DEFAULT_REFRESH_RATE = arm_pb2.STREAM_RATE_60
+PHI = 0.5*(1 + 5**0.5) # golden ratio
+EE_MARKER_RADIUS = 0.003 # meters
+TARGET_CROSSHAIR_AXIS_LENGTH = (PHI**2)*EE_MARKER_RADIUS
+TARGET_CROSSHAIR_HOLLOW = PHI*EE_MARKER_RADIUS
+TARGET_CROSSHAIR_THICKNESS = 3 # in screen units
+
+CAMERA_UP = (0,0,1)
+CAMERA_FOV = 35*np.pi/180 # radians
+CAMERA_POSITION = (0.6, 0.6, 0.7)
+CAMERA_LOOKAT = (0.3, 0.0, 0.2)
 
 def run_client():
     parser = argparse.ArgumentParser()
@@ -53,7 +62,10 @@ def run_client():
             
             # configure viewer details
             vServer.gui.configure_theme(show_logo=False)
-            vServer.initial_camera.position = 0.5 * np.ones(3)
+            vServer.initial_camera.up = CAMERA_UP
+            vServer.initial_camera.fov = CAMERA_FOV
+            vServer.initial_camera.position = CAMERA_POSITION
+            vServer.initial_camera.look_at = CAMERA_LOOKAT
             vServer.scene.add_grid(
                 "/grid",
                 infinite_grid=True,
@@ -66,6 +78,14 @@ def run_client():
             vServer.gui.main_panel.minimize()
             visualizer.loadViewerModel(rootNodeName=model.name)
 
+            # create and store handles to computed geometry
+            h_ee_marker = add_end_effector_marker(vServer, radius=EE_MARKER_RADIUS)
+            h_target_crosshair = add_target_crosshair(vServer, 
+                axis_length=TARGET_CROSSHAIR_AXIS_LENGTH, 
+                hollow_radius=TARGET_CROSSHAIR_HOLLOW,
+                thickness=TARGET_CROSSHAIR_THICKNESS,
+            )
+
             if args.open:
                 import webbrowser
                 webbrowser.open("http://localhost:8080")
@@ -73,8 +93,20 @@ def run_client():
 
             for envelope in response_stream:
                 arm_state: arm_pb2.ArmState = envelope.state
-                #print(f"[{arm_state.sim_time}] q = {arm_state.q.q}")
+
                 visualizer.display(q=np.asarray(arm_state.q.q))
+                ee_pose = arm_state.end_effector
+                h_ee_marker.position = (ee_pose.x, ee_pose.y, ee_pose.z)
+
+                if arm_state.WhichOneof("active_target") == "cartesian_target":
+                    h_ee_marker.visible = True
+                    target = arm_state.cartesian_target
+                    h_target_crosshair.position = (target.x, target.y, target.z)
+                    h_target_crosshair.visible = True
+                else:
+                    h_ee_marker.visible = False
+                    h_target_crosshair.visible = False
+
 
         except grpc.RpcError as e:
             logging.error(f"gRPC stream connection failed: {e.code()} - {e.details()}")
@@ -97,6 +129,46 @@ def resolve_refresh_rate(args) -> arm_pb2.StreamRate:
             return arm_pb2.STREAM_RATE_120
         case _:
             return arm_pb2.STREAM_RATE_60
+
+def add_end_effector_marker(scene_server, radius):
+    h_marker = scene_server.add_icosphere(
+        name="end_effector_position",
+        radius=radius,
+        color=(0.0, 1.0, 0.0),
+        subdivisions=3,
+        scale=1.0,
+        wireframe=False,
+        opacity=1,
+        material="standard", # 'standard', 'toon3', 'toon5'
+        flat_shading=False,
+        side="front", # 'front', 'back', 'double'
+        cast_shadow=True,
+        receive_shadow=True,
+        wxyz=(1.0, 0.0, 0.0, 0.0),
+        position=(0.0, 0.0, 0.0),
+        visible=False,
+    )
+    return h_marker
+
+def add_target_crosshair(scene_server, axis_length, hollow_radius, thickness):
+    points = np.array([
+        [[hollow_radius, 0, 0], [axis_length, 0, 0]],
+        [[-hollow_radius, 0, 0], [-axis_length, 0, 0]],
+        [[0, hollow_radius, 0], [0, axis_length, 0]],
+        [[0, -hollow_radius, 0], [0, -axis_length, 0]],
+        [[0, 0, hollow_radius], [0, 0, axis_length]],
+        [[0, 0, -hollow_radius], [0, 0, -axis_length]]
+    ])
+    h_crosshair = scene_server.add_line_segments(
+        name="target_crosshair",
+        points=points,
+        colors=(1.0, 0.0, 0.0),
+        thickness=thickness,
+        thickness_units="screen",
+        position=(0, 0, 0),
+        visible=False
+    )
+    return h_crosshair
 
 if __name__ == "__main__":
     print("=== Starting 3D Visualizer ===")
