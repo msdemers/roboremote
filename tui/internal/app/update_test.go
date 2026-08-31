@@ -130,7 +130,7 @@ func TestUpdate_GlobalKeyRouting(t *testing.T) {
 		},
 		{
 			name:            "confirmReset - y confirms and returns a cmd",
-			seed:            model{activePage: pageControl, pendingConfirm: confirmReset},
+			seed:            model{activePage: pageControl, pendingConfirm: confirmReset, confirmDeadline: time.Now().Add(time.Minute)},
 			key:             key("y"),
 			wantPage:        pageControl,
 			wantConfirm:     confirmNone,
