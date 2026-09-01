@@ -187,21 +187,7 @@ func TestUpdate_GlobalKeyRouting(t *testing.T) {
 				t.Errorf("pendingConfirm = %v, want %v", got.pendingConfirm, tc.wantConfirm)
 			}
 
-			switch tc.wantCmd {
-			case cmdNone:
-				if cmd != nil {
-					t.Errorf("Update() returned a cmd when nil expected")
-				}
-			case cmdQuit:
-				msg := cmd()
-				if _, ok := msg.(tea.QuitMsg); !ok {
-					t.Errorf("Update() returned %T, expected %T", msg, tea.QuitMsg{})
-				}
-			case cmdOpaque:
-				if cmd == nil {
-					t.Errorf("Update() returned nil cmd, expected non nil")
-				}
-			}
+			checkCommand(t, cmd, tc.wantCmd)
 
 			if tc.wantNewDeadline {
 				if got.confirmDeadline.IsZero() || got.confirmDeadline.Before(before.Add(confirmationTimeout)) {
@@ -447,6 +433,55 @@ func TestControlPage_JogCursor(t *testing.T) {
 					t.Errorf("lastJogTime = %v, want %v", got.lastJogTime, tc.seed.lastJogTime)
 				}
 			}
+		})
+	}
+}
+
+func TestUpdate_ConfirmationExpired(t *testing.T) {
+	tests := []struct {
+		name        string
+		seed        model
+		wantConfirm confirmation
+	}{
+		{
+			name: "confirmation survives future deadline",
+			seed: model{
+				pendingConfirm:  confirmQuit,
+				confirmDeadline: time.Now().Add(time.Minute),
+			},
+			wantConfirm: confirmQuit,
+		},
+		{
+			name: "confirmation closes after deadline",
+			seed: model{
+				pendingConfirm:  confirmQuit,
+				confirmDeadline: time.Now().Add(-time.Minute),
+			},
+			wantConfirm: confirmNone,
+		},
+		{
+			name: "cleared confirmation stays cleared after deadline",
+			seed: model{
+				pendingConfirm:  confirmNone,
+				confirmDeadline: time.Now().Add(-time.Minute),
+			},
+			wantConfirm: confirmNone,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			next, cmd := tc.seed.Update(confirmationExpiredMsg{})
+			got, ok := next.(model)
+
+			if !ok {
+				t.Fatalf("Update() = %T, want model", next)
+			}
+
+			if got.pendingConfirm != tc.wantConfirm {
+				t.Errorf("pendingConfirm = %v, want %v", got.pendingConfirm, tc.wantConfirm)
+			}
+			checkCommand(t, cmd, cmdNone)
 		})
 	}
 }
