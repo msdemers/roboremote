@@ -351,7 +351,7 @@ func (m model) renderCompactSnapshot() string {
 }
 
 func (cp *controlPage) jogCursor(steps int) {
-	if cp.selected >= len(cp.targetCursor) {
+	if cp.selected < 0 || cp.selected >= len(cp.targetCursor) {
 		return
 	}
 
