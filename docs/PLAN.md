@@ -124,9 +124,7 @@
 ## Phase 7: Integration and Polish
 - [x] Full stack smoke test; fixed Dockerfile COPY layering and a stream double-close panic
 - [ ] Write README.md (purpose, quickstart, architecture diagram)
-- [ ] Write TUI unit tests — `internal/app` update() is pure; table-driven over
-      mode switching, jog clamping, confirm expiry (today `go test ./tui/...`
-      reports no test files)
+- [x] Write TUI unit tests — table-driven over `internal/app` update paths
 - [ ] Record demo (gif or video)
 - [ ] Commit: "docs: readme, architecture diagram, and demo"
 
@@ -142,6 +140,8 @@
       SetControlMode, so the rejection path can't rot
 - [ ] TUI: absent/short `joint_target` or `cartesian_target` renders an in-pane
       diagnostic but is not validated — decide whether it is a protocol violation
+- [ ] TUI: `selectionDomain` exhaustiveness test — every ControlMode to its
+      expected domain, count-checked; assert highest mode <= 9 (single keystroke)
 - [x] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two
       defects behind one symptom, split below (ADR-020 context)
   - [x] Enforce joint limits in the plant per ADR-022
