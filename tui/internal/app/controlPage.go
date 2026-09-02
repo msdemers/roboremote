@@ -75,10 +75,16 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 	case keyStr == "+" && m.controlPage.nSelectable > 0:
 		m.controlPage.jogCursor(1) // jog up one step
 		targetReq := m.controlPage.targetRequest()
+		if targetReq == nil {
+			return m, nil
+		}
 		return m, submitControlTarget(m.sim, targetReq)
 	case keyStr == "-" && m.controlPage.nSelectable > 0:
 		m.controlPage.jogCursor(-1) // jog down one step
 		targetReq := m.controlPage.targetRequest()
+		if targetReq == nil {
+			return m, nil
+		}
 		return m, submitControlTarget(m.sim, targetReq)
 	case keyStr == "r":
 		return m.openConfirm(confirmReset)
