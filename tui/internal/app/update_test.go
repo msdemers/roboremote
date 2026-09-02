@@ -149,6 +149,24 @@ func TestUpdate_GlobalKeyRouting(t *testing.T) {
 			wantNewDeadline: false,
 		},
 		{
+			name:            "r from pageMonitor gets swallowed",
+			seed:            model{activePage: pageMonitor, pendingConfirm: confirmNone},
+			key:             key("r"),
+			wantPage:        pageMonitor,
+			wantConfirm:     confirmNone,
+			wantCmd:         cmdNone,
+			wantNewDeadline: false,
+		},
+		{
+			name:            "r from pageControl starts confirmReset",
+			seed:            model{activePage: pageControl, pendingConfirm: confirmNone},
+			key:             key("r"),
+			wantPage:        pageControl,
+			wantConfirm:     confirmReset,
+			wantCmd:         cmdOpaque,
+			wantNewDeadline: true,
+		},
+		{
 			name:            "confirmReset - y confirms and returns a cmd",
 			seed:            model{activePage: pageControl, pendingConfirm: confirmReset, confirmDeadline: time.Now().Add(time.Minute)},
 			key:             key("y"),
@@ -202,6 +220,55 @@ func TestUpdate_GlobalKeyRouting(t *testing.T) {
 				}
 			}
 
+		})
+	}
+}
+
+func TestUpdate_ConfirmationExpired(t *testing.T) {
+	tests := []struct {
+		name        string
+		seed        model
+		wantConfirm confirmation
+	}{
+		{
+			name: "confirmation survives future deadline",
+			seed: model{
+				pendingConfirm:  confirmQuit,
+				confirmDeadline: time.Now().Add(time.Minute),
+			},
+			wantConfirm: confirmQuit,
+		},
+		{
+			name: "confirmation closes after deadline",
+			seed: model{
+				pendingConfirm:  confirmQuit,
+				confirmDeadline: time.Now().Add(-time.Minute),
+			},
+			wantConfirm: confirmNone,
+		},
+		{
+			name: "cleared confirmation stays cleared after deadline",
+			seed: model{
+				pendingConfirm:  confirmNone,
+				confirmDeadline: time.Now().Add(-time.Minute),
+			},
+			wantConfirm: confirmNone,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			next, cmd := tc.seed.Update(confirmationExpiredMsg{})
+			got, ok := next.(model)
+
+			if !ok {
+				t.Fatalf("Update() = %T, want model", next)
+			}
+
+			if got.pendingConfirm != tc.wantConfirm {
+				t.Errorf("pendingConfirm = %v, want %v", got.pendingConfirm, tc.wantConfirm)
+			}
+			checkCommand(t, cmd, cmdNone)
 		})
 	}
 }
@@ -301,6 +368,202 @@ func TestUpdateControlPage_Selection(t *testing.T) {
 				t.Errorf("selected = %v, want %v", got.selected, tc.wantSelected)
 			}
 			checkCommand(t, cmd, tc.wantCmd)
+		})
+	}
+}
+
+func TestUpdateControlPage_ModeKeys(t *testing.T) {
+	tests := []struct {
+		name         string
+		seed         model
+		key          tea.KeyPressMsg
+		wantSelected int
+		wantCmd      cmdRegime
+	}{
+		{
+			name: "0 key excluded",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					nSelectable: 3, selected: 5, // this is an invalid combo
+				},
+			},
+			key:          tea.KeyPressMsg{Text: "0"},
+			wantSelected: 2,
+			wantCmd:      cmdNone,
+		},
+		{
+			name: "1 key fires command",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					nSelectable: 3, selected: 5, // this is an invalid combo
+				},
+			},
+			key:          tea.KeyPressMsg{Text: "1"},
+			wantSelected: 5,
+			wantCmd:      cmdOpaque,
+		},
+		{
+			name: "5 key fires command",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					nSelectable: 3, selected: 5, // this is an invalid combo
+				},
+			},
+			key:          tea.KeyPressMsg{Text: "1"},
+			wantSelected: 5,
+			wantCmd:      cmdOpaque,
+		},
+		{
+			name: "6 key excluded",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					nSelectable: 3, selected: 5, // this is an invalid combo
+				},
+			},
+			key:          tea.KeyPressMsg{Text: "6"},
+			wantSelected: 2,
+			wantCmd:      cmdNone,
+		},
+	}
+
+	for _, tc := range tests {
+		next, cmd := tc.seed.Update(tc.key)
+		got, ok := next.(model)
+		if !ok {
+			t.Fatalf("Update() = %T, want model", next)
+		}
+
+		checkCommand(t, cmd, tc.wantCmd)
+
+		if got.controlPage.selected != tc.wantSelected {
+			t.Errorf("selected = %v, wanted %v", got.controlPage.selected, tc.wantSelected)
+		}
+	}
+}
+
+func TestUpdateControlPage_Jog(t *testing.T) {
+	tests := []struct {
+		name               string
+		seed               model
+		key                tea.KeyPressMsg
+		wantTargetCursor   []float64
+		wantNewLastJogTime bool
+		wantCmd            cmdRegime
+	}{
+		{
+			name: "+ on DomainNone gets swallowed",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					selected: 0, nSelectable: 3, selectionDomain: DomainNone,
+					targetCursor: []float64{},
+					touched:      []bool{},
+				},
+			},
+			key:                tea.KeyPressMsg{Text: "+"},
+			wantTargetCursor:   []float64{},
+			wantNewLastJogTime: false,
+			wantCmd:            cmdNone,
+		},
+		{
+			name: "+ when nSelectable = 0 gets swallowed",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					selected: 0, nSelectable: 0, selectionDomain: DomainTask,
+					targetCursor: []float64{},
+					touched:      []bool{},
+				},
+			},
+			key:                tea.KeyPressMsg{Text: "+"},
+			wantTargetCursor:   []float64{},
+			wantNewLastJogTime: false,
+			wantCmd:            cmdNone,
+		},
+		{
+			name: "+ on DomainJoint updates targetCursor and fires",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					selected: 1, nSelectable: 6, selectionDomain: DomainJoint,
+					targetCursor: make([]float64, 6),
+					touched:      make([]bool, 6),
+				},
+			},
+			key:                tea.KeyPressMsg{Text: "+"},
+			wantTargetCursor:   []float64{0.0, 0.0 + jogStepRadians, 0.0, 0.0, 0.0, 0.0},
+			wantNewLastJogTime: true,
+			wantCmd:            cmdOpaque,
+		},
+		{
+			name: "+ on DomainTask updates targetCursor and fires",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					selected: 2, nSelectable: 3, selectionDomain: DomainTask,
+					targetCursor: []float64{0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 0.1},
+					touched:      make([]bool, 7),
+				},
+			},
+			key:                tea.KeyPressMsg{Text: "+"},
+			wantTargetCursor:   []float64{0.1, 0.2, 0.3 + jogStepMeters, 0.0, 0.0, 0.0, 0.1},
+			wantNewLastJogTime: true,
+			wantCmd:            cmdOpaque,
+		},
+		{
+			name: "- on DomainTask updates targetCursor and fires",
+			seed: model{
+				activePage: pageControl,
+				controlPage: controlPage{
+					selected: 2, nSelectable: 3, selectionDomain: DomainTask,
+					targetCursor: []float64{0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 0.1},
+					touched:      make([]bool, 7),
+				},
+			},
+			key:                tea.KeyPressMsg{Text: "-"},
+			wantTargetCursor:   []float64{0.1, 0.2, 0.3 - jogStepMeters, 0.0, 0.0, 0.0, 0.1},
+			wantNewLastJogTime: true,
+			wantCmd:            cmdOpaque,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// no deep clones on tc.seed required because we never
+			// compare got's targetCursor or touched arrays to tc.seed's arrays
+			before := time.Now()
+			next, cmd := tc.seed.Update(tc.key)
+			after := time.Now()
+			got, ok := next.(model)
+			if !ok {
+				t.Fatalf("Updated = %v, want model", next)
+			}
+
+			checkCommand(t, cmd, tc.wantCmd)
+
+			targetCursorsEqual := slices.EqualFunc(got.controlPage.targetCursor, tc.wantTargetCursor, func(a, b float64) bool {
+				return math.Abs(a-b) < 1e-9
+			})
+			if !targetCursorsEqual {
+				t.Errorf("targetCursor = %v, want %v", got.controlPage.targetCursor, tc.wantTargetCursor)
+			}
+
+			if tc.wantNewLastJogTime {
+				if got.controlPage.lastJogTime.Before(before) {
+					t.Errorf("lastJogTime = %v, want after %v", got.controlPage.lastJogTime, before)
+				}
+				if got.controlPage.lastJogTime.After(after) {
+					t.Errorf("lastJogTime = %v, want before %v", got.controlPage.lastJogTime, after)
+				}
+			} else {
+				if !got.controlPage.lastJogTime.Equal(tc.seed.controlPage.lastJogTime) {
+					t.Errorf("lastJogTime = %v, want %v", got.controlPage.lastJogTime, tc.seed.controlPage.lastJogTime)
+				}
+			}
 		})
 	}
 }
@@ -433,55 +696,6 @@ func TestControlPage_JogCursor(t *testing.T) {
 					t.Errorf("lastJogTime = %v, want %v", got.lastJogTime, tc.seed.lastJogTime)
 				}
 			}
-		})
-	}
-}
-
-func TestUpdate_ConfirmationExpired(t *testing.T) {
-	tests := []struct {
-		name        string
-		seed        model
-		wantConfirm confirmation
-	}{
-		{
-			name: "confirmation survives future deadline",
-			seed: model{
-				pendingConfirm:  confirmQuit,
-				confirmDeadline: time.Now().Add(time.Minute),
-			},
-			wantConfirm: confirmQuit,
-		},
-		{
-			name: "confirmation closes after deadline",
-			seed: model{
-				pendingConfirm:  confirmQuit,
-				confirmDeadline: time.Now().Add(-time.Minute),
-			},
-			wantConfirm: confirmNone,
-		},
-		{
-			name: "cleared confirmation stays cleared after deadline",
-			seed: model{
-				pendingConfirm:  confirmNone,
-				confirmDeadline: time.Now().Add(-time.Minute),
-			},
-			wantConfirm: confirmNone,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			next, cmd := tc.seed.Update(confirmationExpiredMsg{})
-			got, ok := next.(model)
-
-			if !ok {
-				t.Fatalf("Update() = %T, want model", next)
-			}
-
-			if got.pendingConfirm != tc.wantConfirm {
-				t.Errorf("pendingConfirm = %v, want %v", got.pendingConfirm, tc.wantConfirm)
-			}
-			checkCommand(t, cmd, cmdNone)
 		})
 	}
 }
