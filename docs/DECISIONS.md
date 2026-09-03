@@ -20,7 +20,8 @@ Use gRPC with Protocol Buffers.
 - Go + gRPC is a natural pairing (both Google-origin)
 - Aligns with ROS2/Isaac ecosystem philosophy
 - Upfront cost: learn protobuf syntax and buf toolchain
-- No native browser support (acceptable; browser client is not v1)
+- No native browser support (acceptable; no browser speaks gRPC directly —
+  `viz` proxies through a Python client, ADR-005)
 
 ---
 
@@ -73,8 +74,9 @@ Use Pinocchio for V1. Evaluate MuJoCo as a fast follow if contact dynamics,
 tendon models, or broader ecosystem integration is needed.
 
 **Consequences:**
-- Containerizes in two lines: `FROM python:3.11-slim` + `pip install pin numpy`
-- No rendering dependency -- visualization handled by separate Rerun client
+- Containerizes on a stock `python:*-slim` base with one system package
+  (`libgomp1`) — no renderer, no display server, no GPU toolchain
+- No rendering dependency — visualization handled by a separate client (ADR-005)
 - Research-grade dynamics accuracy appropriate for the domain
 - Developer's PhD background in biomechanics simulation means Pinocchio's
   abstraction level (spatial algebra, Jacobians, mass matrices) is comfortable
@@ -102,28 +104,29 @@ as canonical URDF and MJCF respectively).
 - URDF and MJCF both open source, community vetted, full inertial properties
   confirmed present
 - STL mesh assets available for visualization
-- Physical kit available for ~$100 -- real hardware follow-on is accessible
+- Physical kit available for ~$100 — real hardware follow-on is accessible
   to any user, not just well-funded labs
-- Used as primary reference platform in Hugging Face LeRobot -- active
+- Used as primary reference platform in Hugging Face LeRobot — active
   community, abundant reference implementations
 - 5-DOF + gripper is simpler than UR5e's 6-DOF, appropriate for V1 scope
 - Models committed to `models/so101/` (amended): the `physics` image **bakes
-  in** `so101_new_calib.urdf` at build time rather than a Compose volume
-  mount. The original mount was sized for two consumers (`physics` and
-  `viz`) sharing the mesh tree; `viz`/Rerun is Phase 6 and out of this
-  containerization pass, and `physics` only calls `buildModelFromUrdf`
-  (URDF only, a few KB) — `buildGeomFromUrdf` (meshes, ~15MB) is never
-  invoked. A baked image is also self-contained for the ADR-006 Fly.io V2
-  target, which has no host filesystem to bind-mount from. Viz asset
-  distribution resolved 2026-08-19: un-excluded from `.dockerignore`,
-  baked the same way via `viz`'s own image
+  in** the URDF at build time rather than a Compose volume mount. The mount was
+  sized for `physics` and `viz` sharing the mesh tree, but `physics` only calls
+  `buildModelFromUrdf`, never `buildGeomFromUrdf`. A baked image is also
+  self-contained for the ADR-006 Fly.io V2 target, which has no host filesystem
+  to bind-mount from. Viz assets resolved 2026-08-19: un-excluded from
+  `.dockerignore`, baked via `viz`'s own image.
+
+**Amendment (2026-08-19):** `physics` bakes the whole `models/` tree (~15MB),
+not the URDF alone — superseding the sizing above. Kept: V2/V3 want collision
+geometry in the engine, which needs the meshes anyway.
 
 ---
 
-## ADR-005: Rerun as Dev-Only Visualizer for V1 (Three.js for V2)
+## ADR-005: Viser as Dev-Only Visualizer for V1 (Three.js for V2)
 
-**Status:** Accepted; amended 2026-08-17 (V1 tool changed to Viser via
-Pinocchio's `ViserVisualizer`, not Rerun)
+**Status:** Accepted; amended 2026-08-17 (Viser, not Rerun);
+amended 2026-08-19 (containerized as opt-in compose profile)
 
 **Context:**
 Validating physics sidecar output requires visual feedback during development.
@@ -145,22 +148,22 @@ user-facing interaction mechanism for V1.
 
 **Consequences:**
 - Immediate visual validation of physics sidecar output during development
-- Dev visualizer is not part of the end-user Docker Compose stack -- dev tool only
+- Dev visualizer is not part of the end-user Docker Compose stack — dev tool only
 - Interactive tugging deferred to V2 as a separate, properly scoped product
 - V1 capstone story is cleaner: containerized real-time gRPC sim with Go TUI
 - V2 Three.js visualizer becomes its own compelling portfolio piece
 
 **Amendment (2026-08-17):** Switched V1 tool from Rerun to Pinocchio's
-`ViserVisualizer` -- reuses `physics/`'s own engine for q→pose, no custom FK
+`ViserVisualizer` — reuses `physics/`'s own engine for q→pose, no custom FK
 code required. Chosen over `MeshcatVisualizer` for active maintenance (meshcat
 last released 2021). `viz/` stays strictly passive despite Viser's
-drag-interaction support -- unused until V2's Three.js scope is designed.
+drag-interaction support — unused until V2's Three.js scope is designed.
 
 **Amendment (2026-08-19):** `viz` containerized and added to `docker-compose.yml`
-as an opt-in `profiles: ["viz"]` service -- supersedes the "not part of the
+as an opt-in `profiles: ["viz"]` service — supersedes the "not part of the
 end-user stack" consequence above. Mesh assets un-excluded from `.dockerignore`
-for `physics`+`viz` (ADR-004); cost accepted as negligible for `physics`, free
-for `server`/`tui` (multi-stage builds never copy them into the final image).
+for `physics`+`viz` (cost accepted, ADR-004); free for `server`/`tui`
+(multi-stage builds never copy them into the final image).
 
 ---
 
@@ -185,10 +188,10 @@ communicating over Fly.io's private WireGuard network.
 - Go sim server compiles to a scratch-based container (~15MB), ideal for Fly.io
 - Fly.io chosen over Railway/Render for persistent process support, native
   gRPC/HTTP2, Go ecosystem alignment, and global edge deployment
-- Fly.io has no GPU support -- future GPU workloads (Isaac, policy training)
+- Fly.io has no GPU support — future GPU workloads (Isaac, policy training)
   will require a separate provider (AWS or CoreWeave, decision deferred)
-- V2 deployment stubs committed to `deploy/` directory with documented
-  `fly.toml.example` files per service
+- V2 deployment is recorded here as intent only; no config is committed until
+  it is written against a real deploy
 - V2 deployment targeted as DevOps capstone project or immediate fast follow
 
 ---
@@ -216,8 +219,6 @@ routes inbound commands back to the sidecar. It does not advance sim time.
 - No network hop inside the integration loop; sim rate is set by the sidecar,
   not by RPC timing.
 - Go server stays a stateless relay — simpler, easier to scale fan-out.
-- The Phase 4 "simulation loop goroutine" is really a stream pump, not an
-  integrator; PLAN wording should be read in that light.
 - Determinism and timestep discipline live in one place (Python), aligning
   with the developer's numerics background.
 - The sidecar must drive its own loop independent of client connections
@@ -246,7 +247,7 @@ Decompose the client-facing interface into two RPC shapes:
   accept/reject status. Locked so far: `ResetConfiguration` (snap),
   `SetJointTarget` (servo), `SetControlMode`. Remaining command roster
   (Cartesian target, sensor add/remove, control-mode representation, sensor
-  ownership) is still being designed and will be recorded separately.
+  ownership) is recorded in ADR-012, ADR-013, and ADR-015.
 
 The bidirectional `SimStream` is removed.
 
@@ -327,9 +328,9 @@ the sidecar's `SimSnapshot{t, q, v, tau}` is already shaped.
 - **Model geometry/meshes are NOT shipped over gRPC.** Clients load them
   out-of-band and verify against `model_name`/`model_version`. Mechanism is
   local-only for now — the `physics` image bakes in the URDF (ADR-004,
-  amended) rather than mounting it, and viz asset distribution is deferred,
-  unresolved. Asset distribution for genuinely remote clients is deferred to
-  V2.
+  amended) rather than mounting it, and `viz` loads them from its own image
+  (ADR-004, amended). Asset distribution for genuinely remote clients is
+  deferred to V2.
 
 **Consequences:**
 - Wire shape mirrors the sidecar's snapshot and Pinocchio's `nq`/`nv`; no
@@ -464,6 +465,9 @@ validates, and originates acks. The server implements the same interface:
 - Validation, authority, and acks live solely in the sidecar (ADR-007).
 - One service def + shared messages = no payload duplication; a client sees an
   identical interface whether it talks to the sidecar or the server.
+- The sidecar has no fan-out: each `Subscribe` is an independent 120 Hz loop on
+  its own pool thread (`max_workers=4`). The server being the sole subscriber is
+  load-bearing — direct clients starve the command path, not just duplicate work.
 
 ---
 
@@ -546,8 +550,7 @@ convention and serve both Go and Python consumers.
 
 ## ADR-017: Generated-Code Distribution Across Polyglot Services
 
-**Status:** Accepted (interim); Go durable step complete, Python durable step
-still deferred to Phase 3
+**Status:** Accepted
 
 **Context:**
 Generated stubs live at `proto/gen/{go,python}` — a sibling of `physics/`,
@@ -566,22 +569,22 @@ follow, and they are **not** the same fix:
   central, checked-in mechanism per entry point — `pytest` `pythonpath` for
   tests, and a `make run-physics` target that sets `PYTHONPATH=../proto/gen/python`
   for the server. No ad-hoc per-invocation `PYTHONPATH` scattered in docs/shells.
-- **Durable (deferred to Phase 3 / containerization):** package the generated
-  protos as an installable dependency (`roboremote-proto`) that each Python
-  service depends on, and set the Docker build context to the repo root (or
-  install a pre-built wheel) so images contain the stubs. The Go side has the
-  identical shape — resolve `proto/gen/go` across the separate `server`/`tui`
-  modules via a `go.work` or a dedicated module.
+- **Durable (Phase 3 / containerization):** package the generated protos as an
+  installable dependency (`roboremote-proto`) that each Python service depends
+  on, and set the Docker build context to the repo root (or install a pre-built
+  wheel) so images contain the stubs. The Go side has the identical shape —
+  resolve `proto/gen/go` across the separate `server`/`tui` modules via a
+  `go.work` or a dedicated module.
 
 **Consequences:**
 - Local dev (tests + server + smoke client) unblocked now without spreading a
   fragile one-liner.
-- The container gap is a known, bounded change scoped to Phase 3, where the
-  compose/Dockerfiles are edited anyway — not a lurking unknown.
 - Distribution strategy is recorded, so it isn't rediscovered per service.
-- The Go durable step landed early: `tui` joined the root `go.work` during its own
-  setup (Phase 5), not held for the batched containerization pass — no `replace`
-  directives or version pins needed between `proto/gen/go`, `server`, and `tui`.
+- Both durable steps landed: Python via the `roboremote-proto` package (editable
+  path dep, repo-root build context); Go via the root `go.work`, which `tui`
+  joined during Phase 5 rather than waiting for the batched containerization
+  pass — no `replace` directives or version pins needed between `proto/gen/go`,
+  `server`, and `tui`.
 
 ---
 
@@ -638,13 +641,12 @@ via Pinocchio inverse-dynamics recursions:
   symmetrization.
 - RAW vs COMPENSATED is principled: uniform stability from M-weighting (both),
   position-holding from bias cancellation (COMPENSATED only).
-- Task-space (`TASK_PD_*`) will need `crba`/operational-space inertia; deferred.
 
 ---
 
 ## ADR-020: Task-Space Control — Position-Only Operational Space (V1)
 
-**Status:** Accepted (RAW verified live; COMPENSATED designed, implementation pending)
+**Status:** Accepted
 
 **Context:**
 SO101 is 5-DOF + gripper (`nq=6`). The gripper's EE-frame Jacobian column is
@@ -678,9 +680,14 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
 
 **Consequences / deferred:**
 - One gain set serves RAW and COMPENSATED (unit-mass decoupling).
-- Deferred: full-pose/orientation control; **variable damping `λ(σ_min)`**
-  (Nakamura/Wampler, activates only near singularities); null-space posture task;
-  inertia-weighted null-space damping; gripper as a real open/close actuator.
+- V1's constant `λ=0.3` was tuned offline from sampled conditioning of
+  `J M⁻¹ Jᵀ` across random configurations
+  (`physics/scripts/sample_arm_inertias.py`), not adapted at runtime.
+- Deferred: full-pose/orientation control; **variable damping `λ(σ_min(t))`** — λ
+  recomputed each step from the instantaneous smallest singular value
+  (Nakamura/Wampler), so damping activates only near singularities; null-space
+  posture task; inertia-weighted null-space damping; gripper as a real open/close
+  actuator.
 - Gains are hardcoded defaults; a tuning/config surface is future work.
 
 ---
@@ -745,7 +752,7 @@ over one gRPC conn.
   client (`q`, `tab`), page keys act on the arm. `r` is therefore a
   Control-page key, preserving Monitor as a genuinely read-only observer — a
   property the two-terminal fan-out demo depends on.
-- **Single gRPC edge + command pump:** `internal/stream` grows into the sole
+- **Single gRPC edge + command pump:** `internal/simclient` grows into the sole
   owner of the `ClientConn` (stream out, unary in). Commands dispatch through
   one serialized pump goroutine (next send after previous ack) with a
   **depth-1 latest-wins slot for `SetTarget`** — jog bursts coalesce to the
