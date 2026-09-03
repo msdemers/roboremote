@@ -48,7 +48,7 @@ with it over gRPC on the Docker Compose internal network.
 
 ---
 
-## ADR-003: Pinocchio as V1 Physics Engine (MuJoCo as Fast Follow)
+## ADR-003: Pinocchio as V1 Physics Engine
 
 **Status:** Accepted
 
@@ -82,6 +82,9 @@ tendon models, or broader ecosystem integration is needed.
   abstraction level (spatial algebra, Jacobians, mass matrices) is comfortable
 - MuJoCo upgrade path is clean: MJCF model for SO101 already exists and is
   vetted
+
+**Amendment (2026-08-28):** MuJoCo fast-follow dropped — depth in one dynamics
+engine over breadth across two. The evaluation above stands as the record.
 
 ---
 
@@ -366,7 +369,7 @@ conversion in the sidecar's `SE3→CartesianPose` helper.
 **Consequences:**
 - The sidecar's `SE3→CartesianPose` helper is a near-direct copy of the Eigen
   quaternion coefficients.
-- The MuJoCo fast-follow (ADR-003) uses scalar-first `wxyz`; that conversion
+- A MuJoCo backend (ADR-003) would use scalar-first `wxyz`; that conversion
   lives solely in the `SE3→CartesianPose` helper at the engine boundary, never
   on the wire.
 - Resolves the PLAN open TODO on quaternion conventions.
@@ -612,7 +615,7 @@ sidecar.
 
 ---
 
-## ADR-019: Control Laws — Computed-Torque and Inertia-Weighted PD
+## ADR-019: Joint-Space Control Laws — Computed-Torque and Inertia-Weighted PD
 
 **Status:** Accepted
 
@@ -806,7 +809,7 @@ null-space decoupling — caps a limit spring near 65 N·m/rad, too soft to read
 as rigid. A clamp has no stability bound.
 
 `JointLimitConstraintModel` is deferred. It is the modeling-correct route and
-would open contacts for ADR-003's MuJoCo fast-follow, but it replaces `pin.aba`
+would open contacts for a MuJoCo backend (ADR-003), but it replaces `pin.aba`
 and puts a complementarity solve inside the 1 ms loop.
 
 **Consequences:**
