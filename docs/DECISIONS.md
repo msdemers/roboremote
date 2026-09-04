@@ -438,6 +438,8 @@ Task-PD-Compensated).
 - Supersedes the `SetJointTarget`/`SetCartesianTarget` split in ADR-012.
 - Clarified by ADR-019: "compensated" means *full inverse-dynamics*
   compensation (Coriolis + gravity via computed torque), not gravity-only.
+- Amended by ADR-024: the mode-entry setpoint default narrows to domain
+  changes; a switch within a domain preserves the live target.
 
 ---
 
@@ -858,3 +860,46 @@ bound and would admit physical values.
 - Computed torque no longer feedback-linearizes exactly.
 - `GRAVITY_COMP` is where damping is observable; every other mode damps harder
   through control.
+
+---
+
+## ADR-024: Target Seeding Keys on Control Domain, Not Mode
+
+**Status:** Accepted
+
+**Context:**
+ADR-013 seeds the setpoint from current state on every mode entry, for
+bumpless transfer. That reseed is only necessary when the target's *kind*
+changes. Within a domain it destroys the comparison the system exists to
+show: switching `TASK_PD_COMPENSATED` → `TASK_PD_RAW` re-aims the target at
+the arm's present pose, so the arm holds and the uncompensated droop never
+appears.
+
+**Decision:**
+Seeding keys on the control domain, not the mode. `ControlDomain` is
+`{NONE, TASK, JOINT}` with a total `domain_for(mode)`; `SetControlMode`
+compares the incoming mode's domain against the live controller's. Same
+domain preserves the current target; a domain change seeds from current
+state in the new domain's coordinates; `NONE` carries no target.
+
+Bumpless transfer survives where it was load-bearing. A domain change still
+seeds from state, and within a domain the target is unchanged by
+construction — the operator commanded it and it stays. The torque
+discontinuity that remains is the phenomenon under demonstration, not a
+commanded jump.
+
+`domain_for` raises on an unmapped mode rather than defaulting to `NONE`, so
+a sixth mode cannot silently inherit whatever target is live.
+
+Old mode and target are read from `Simulator.get_snapshot()`, which copies
+both under the lock, rather than off `Simulator.controller` — the seeding
+decision and the controller install would otherwise straddle the sim thread.
+
+**Consequences:**
+- The mode→domain mapping now exists twice: `physics/sim/status.py` and the
+  TUI's `selectionDomain`. The proto enum is the shared contract; each side
+  derives its own domain. A new mode must be given one in both places.
+- `domain_for` catches an unmapped mode but not a mis-mapped one; nothing
+  tests that a mode lands in the *right* domain.
+- `SetTarget` still reads `Simulator.controller` unlocked. Same class of
+  race, untouched here.
