@@ -1,6 +1,8 @@
 from sim.simulator import Simulator
 from sim import status
 from control import controller_factory
+import operator
+import service.mappers as mappers
 from service.servicer import ArmSimServicer
 from roboremote.arm.v1 import arm_pb2 as pb
 import grpc
@@ -118,3 +120,74 @@ def test_set_cartesian_target_completes(so101_model):
     res = servicer.SetTarget(req,ctx)
     assert isinstance(res, pb.SetTargetResponse)
     assert sim.controller.target.isApprox(pin.SE3.Identity())
+
+@pytest.mark.parametrize("start_mode,new_mode,make_start,make_expected,compare",
+[
+    pytest.param(
+        status.ControlMode.JOINT_PD_COMPENSATED,
+        status.ControlMode.JOINT_PD_RAW,
+        lambda sim: pin.neutral(sim.model) + 0.08,
+        lambda sim, start: start,
+        np.allclose,
+        id="joint_compensated_to_raw_preserves",
+    ),
+    pytest.param(
+        status.ControlMode.JOINT_PD_COMPENSATED,
+        status.ControlMode.TASK_PD_COMPENSATED,
+        lambda sim: pin.neutral(sim.model) + 0.08,
+        lambda sim, start: sim.ee_pose,
+        lambda got, want: got.isApprox(want),
+        id="joint_to_task_reseeds_from_ee_pose"
+    ),
+    pytest.param(
+        status.ControlMode.TASK_PD_COMPENSATED,
+        status.ControlMode.TASK_PD_RAW,
+        lambda sim: pin.SE3.Identity(),
+        lambda sim, start: start,
+        lambda got, want: got.isApprox(want),
+        id="task_compensated_to_raw_preserves"
+    ),
+    pytest.param(
+        status.ControlMode.TASK_PD_COMPENSATED,
+        status.ControlMode.JOINT_PD_COMPENSATED,
+        lambda sim: pin.SE3.Identity(),
+        lambda sim, start: sim.q,
+        np.allclose,
+        id="task_to_joint_reseeds_from_q",
+    ),
+    pytest.param(
+        status.ControlMode.GRAVITY_COMP,
+        status.ControlMode.JOINT_PD_COMPENSATED,
+        lambda sim: None,
+        lambda sim, start: sim.q,
+        np.allclose,
+        id="gravity_to_joint_reseeds_from_q",
+    ),
+    pytest.param(
+        status.ControlMode.JOINT_PD_COMPENSATED,
+        status.ControlMode.GRAVITY_COMP,
+        lambda sim: pin.neutral(sim.model) + 0.08,
+        lambda sim, start: None,
+        operator.is_,
+        id="joint_to_gravity_clears_target",
+    ),
+])
+def test_mode_switch_target_seeding( so101_model, start_mode, new_mode, make_start, make_expected, compare):
+    # init sim to nonneutral pose unique from all state/snapshot conditions in the test table
+    sim = Simulator(so101_model, dt=0.001, q0=pin.neutral(so101_model) - 0.08)
+    servicer = ArmSimServicer(sim, "so101", "v0")
+    ctx = FakeContext()
+
+    start = make_start(sim)
+    sim.set_controller(
+        controller_factory.controller_for(start_mode, start
+    ))
+
+    # make and send request to switch control mode
+    res = servicer.SetControlMode(
+        pb.SetControlModeRequest(mode=mappers._MODE_MAP[new_mode]), 
+        ctx,
+    )
+
+    assert sim.controller.mode == new_mode
+    assert compare(sim.controller.target, make_expected(sim, start))

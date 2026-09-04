@@ -34,15 +34,20 @@ class ArmSimServicer(pb_grpc.ArmSimServiceServicer):
     def SetControlMode(self, request, context):
         
         snapshot = self.sim.get_snapshot()
+        old_domain = status.domain_for(snapshot.active_mode)
         try:
             control_mode: status.ControlMode = mappers._MODE_MAP_INV[request.mode]
-            match control_mode:
-                case status.ControlMode.JOINT_PD_COMPENSATED | status.ControlMode.JOINT_PD_RAW:
-                    target_seed = snapshot.q
-                case status.ControlMode.TASK_PD_COMPENSATED | status.ControlMode.TASK_PD_RAW:
-                    target_seed = snapshot.ee_pose
-                case _:
-                    target_seed = None
+            new_domain = status.domain_for(control_mode)
+            target_seed = snapshot.active_target
+
+            if new_domain != old_domain: # target needs to change type. use current robot state for new value
+                match new_domain:
+                    case status.ControlDomain.JOINT:
+                        target_seed = snapshot.q
+                    case status.ControlDomain.TASK:
+                        target_seed = snapshot.ee_pose
+                    case status.ControlDomain.NONE:
+                        target_seed = None
             self.sim.set_controller(
                 controller_factory.controller_for(control_mode, target_seed)
                 )
