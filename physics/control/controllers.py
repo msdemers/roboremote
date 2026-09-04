@@ -10,6 +10,11 @@ DEFAULT_KD = 100.0 # 1/s
 DEFAULT_LAM = 0.3 # Tikhonov regularizer
 DEFAULT_KN = 0.015 # null-space damping
 
+# these gains represent the highest gains the system has been developed and 
+# exercised at, not the computed, theoretical stability bound.
+VALIDATED_KP = 2500.0 # 1/s^2
+VALIDATED_KD = 100.0 # 1/s
+
 class Controller(Protocol):
     mode: ControlMode
     target: np.ndarray | pin.SE3 | None

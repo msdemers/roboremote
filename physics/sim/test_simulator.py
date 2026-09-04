@@ -9,6 +9,8 @@ import threading, time
 from dataclasses import FrozenInstanceError
 import pytest
 
+DEFAULT_DT = 0.001 # seconds
+
 class ConstantController:
     def __init__(self, tau, mode=ControlMode.UNSPECIFIED, target=None):
         self._tau, self.mode, self.target = tau, mode, target
@@ -17,7 +19,7 @@ class ConstantController:
 
 def test_clock(so101_model):
     model = so101_model
-    dt = 0.001
+    dt = DEFAULT_DT
     n_steps = 100
     sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
     for _ in range(n_steps):
@@ -26,7 +28,7 @@ def test_clock(so101_model):
 
 def test_sim_matches_integrator(so101_model):
     model = so101_model
-    dt = 0.001
+    dt = DEFAULT_DT
 
     q_0 = pin.neutral(model)
     v_0 = np.zeros(model.nv)
@@ -45,10 +47,9 @@ def test_sim_matches_integrator(so101_model):
 
 def test_free_fall_under_zero_tau(so101_model):
     model = so101_model
-    dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
+    sim = simulator.Simulator(model, DEFAULT_DT, ConstantController(np.zeros(model.nv)))
 
     ee_pose_0 = forward.end_effector_pose(sim.model, sim.data, sim.q)
 
@@ -62,10 +63,9 @@ def test_free_fall_under_zero_tau(so101_model):
 
 def test_static_under_grav_comp_policy(so101_model):
     model = so101_model
-    dt = 0.001
     n_steps = 1000
 
-    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController(), pin.randomConfiguration(model), np.zeros(model.nv))
+    sim = simulator.Simulator(model, DEFAULT_DT, controllers.GravityCompensationController(), pin.randomConfiguration(model), np.zeros(model.nv))
 
     ee_pose_0 = forward.end_effector_pose(model, sim.data, sim.q)
 
@@ -78,9 +78,8 @@ def test_static_under_grav_comp_policy(so101_model):
 
 def test_run_stops(so101_model):
     model = so101_model
-    dt = 0.001
 
-    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController())
+    sim = simulator.Simulator(model, DEFAULT_DT, controllers.GravityCompensationController())
 
     thread = threading.Thread(target=sim.run, daemon=True)
     thread.start()
@@ -93,9 +92,8 @@ def test_run_stops(so101_model):
 
 def test_run_advances_realtime(so101_model):
     model = so101_model
-    dt = 0.001
 
-    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController())
+    sim = simulator.Simulator(model, DEFAULT_DT, controllers.GravityCompensationController())
 
     t_start = time.perf_counter()
     thread = threading.Thread(target=sim.run, daemon=True)
@@ -109,10 +107,9 @@ def test_run_advances_realtime(so101_model):
 
 def test_snapshot_returns_valid_data(so101_model):
     model = so101_model
-    dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
+    sim = simulator.Simulator(model, DEFAULT_DT, ConstantController(np.zeros(model.nv)))
 
     start_snapshot = sim.get_snapshot()
 
@@ -125,9 +122,8 @@ def test_snapshot_returns_valid_data(so101_model):
     
 def test_snapshots_are_decoupled_from_state(so101_model):
     model = so101_model
-    dt = 0.001
 
-    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
+    sim = simulator.Simulator(model, DEFAULT_DT, ConstantController(np.zeros(model.nv)))
     sim.tick()
     snapshot = sim.get_snapshot()
     sim.tick()
@@ -135,10 +131,9 @@ def test_snapshots_are_decoupled_from_state(so101_model):
     
 def test_snapshot_is_frozen(so101_model):
     model = so101_model
-    dt = 0.001
     n_steps = 100
 
-    sim = simulator.Simulator(model, dt, ConstantController(np.zeros(model.nv)))
+    sim = simulator.Simulator(model, DEFAULT_DT, ConstantController(np.zeros(model.nv)))
 
     start_snapshot = sim.get_snapshot()
     with pytest.raises(FrozenInstanceError):
@@ -146,12 +141,11 @@ def test_snapshot_is_frozen(so101_model):
 
 def test_sim_respects_joint_limits(so101_model):
     model: pin.Model = so101_model
-    dt = 0.001
     n_steps = 1000
 
     upper_limit_config = np.copy(model.upperPositionLimit)
 
-    sim = simulator.Simulator(model, dt, controllers.JointPdController(target=upper_limit_config+0.1), upper_limit_config-0.1, np.zeros(model.nv))
+    sim = simulator.Simulator(model, DEFAULT_DT, controllers.JointPdController(target=upper_limit_config+0.1), upper_limit_config-0.1, np.zeros(model.nv))
 
     for _ in range(n_steps):
         sim.tick()
@@ -163,10 +157,9 @@ def test_sim_respects_joint_limits(so101_model):
 
 def test_sim_integration_damping_dissipates(so101_model):
     model: pin.Model = so101_model
-    dt = 0.001
     n_steps = 10000
 
-    sim = simulator.Simulator(model, dt, controllers.GravityCompensationController(), q0=model.lowerPositionLimit, v0=np.ones(model.nv)*np.pi/20.0)
+    sim = simulator.Simulator(model, DEFAULT_DT, controllers.GravityCompensationController(), q0=model.lowerPositionLimit, v0=np.ones(model.nv)*np.pi/20.0)
 
     initial_ke = pin.computeKineticEnergy(sim.model, sim.data, sim.q, sim.v)
 
@@ -176,3 +169,23 @@ def test_sim_integration_damping_dissipates(so101_model):
     final_ke = pin.computeKineticEnergy(sim.model, sim.data, sim.q, sim.v)
 
     assert final_ke < initial_ke, "simulation system energy did not dissipate over time"
+
+def test_closed_loop_response_is_bounded(so101_model):
+    model: pin.Model = so101_model
+    kp = controllers.VALIDATED_KP
+    kd = controllers.VALIDATED_KD
+    n_steps = 2000
+
+    def lyapunov(v, e):
+        return 0.5*v@v + 0.5*kp*e@e # v and e are 1-D arrays
+
+    target = np.copy(model.upperPositionLimit) - 0.5
+    sim = simulator.Simulator(model=model, dt=DEFAULT_DT, controller=controllers.JointPdController(target=target, kp=kp, kd=kd))
+
+    V_0 = lyapunov(sim.v, sim.q-target)
+    for _ in range(n_steps):
+        sim.tick()
+        assert np.min(model.upperPositionLimit - sim.q) > 0.0, "system hit a joint limit"
+        assert lyapunov(sim.v, pin.difference(model, sim.q, target)) < V_0, "lyapunov function increased"
+    
+    assert np.max(np.abs(pin.difference(model, sim.q, target))) < 1e-3, "failed to converge to target"
