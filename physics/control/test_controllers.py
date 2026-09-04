@@ -41,7 +41,7 @@ def test_raw_joint_pd_weights_error_by_inertia(so101_model):
     expected = M @ (pdContr.kp*error)
     assert np.allclose(tau, expected)
 
-def test_compendated_joint_pd_weights_error_by_inertia(so101_model):
+def test_compensated_joint_pd_weights_error_by_inertia(so101_model):
     model: pin.Model = so101_model
     data: pin.Data = model.createData()
 
