@@ -5,6 +5,11 @@ import numpy as np
 from typing import Protocol
 from sim.status import ControlMode
 
+DEFAULT_KP = 2500.0 # 1/s^2
+DEFAULT_KD = 100.0 # 1/s
+DEFAULT_LAM = 0.3 # Tikhonov regularizer
+DEFAULT_KN = 0.015 # null-space damping
+
 class Controller(Protocol):
     mode: ControlMode
     target: np.ndarray | pin.SE3 | None
@@ -19,7 +24,7 @@ class GravityCompensationController:
 
 class JointPdController:
     mode = ControlMode.JOINT_PD_COMPENSATED
-    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
+    def __init__(self, target: np.ndarray, kp=DEFAULT_KP, kd=DEFAULT_KD):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -29,7 +34,7 @@ class JointPdController:
 
 class JointRawPdController:
     mode = ControlMode.JOINT_PD_RAW
-    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
+    def __init__(self, target: np.ndarray, kp=DEFAULT_KP, kd=DEFAULT_KD):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -41,7 +46,7 @@ class JointRawPdController:
 
 class TaskRawPdController:
     mode = ControlMode.TASK_PD_RAW
-    def __init__(self, target: pin.SE3, kp=2500.0, kd=100.0, lam=0.3, kn=0.015):
+    def __init__(self, target: pin.SE3, kp=DEFAULT_KP, kd=DEFAULT_KD, lam=DEFAULT_LAM, kn=DEFAULT_KN):
         self.target = target
         self.kp, self.kd = kp, kd
         self.lam = lam
@@ -76,7 +81,7 @@ class TaskRawPdController:
 
 class TaskPdController:
     mode = ControlMode.TASK_PD_COMPENSATED
-    def __init__(self, target: pin.SE3, kp=2500.0, kd=100.0, lam=0.3, kn=0.015):
+    def __init__(self, target: pin.SE3, kp=DEFAULT_KP, kd=DEFAULT_KD, lam=DEFAULT_LAM, kn=DEFAULT_KN):
         self.target = target
         self.kp, self.kd = kp, kd
         self.lam = lam
