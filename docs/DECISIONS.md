@@ -903,3 +903,56 @@ decision and the controller install would otherwise straddle the sim thread.
   tests that a mode lands in the *right* domain.
 - `SetTarget` still reads `Simulator.controller` unlocked. Same class of
   race, untouched here.
+
+---
+
+## ADR-025: PD Gain Defaults Are Per-Domain and Chosen for Observability
+
+**Status:** Accepted
+
+**Context:**
+All four PD controllers defaulted to `kp = 2500`, `kd = 100` — ζ = 1 at
+ω_n = 50 rad/s, an 80 ms settle. Correct, and too fast to watch: the arm
+arrives before an observer registers that it moved, which makes the
+raw-vs-compensated comparison unreadable.
+
+The literals were also identical across domains by coincidence, not by
+argument. Joint PD takes error in **radians**; task PD takes it in **meters**.
+One constant served two different physical quantities, and at 2500 both
+happened to work.
+
+**Decision:**
+Gain defaults are per-domain: `DEFAULT_JOINT_KP/KD` and `DEFAULT_TASK_KP/KD`,
+each with ζ = 1 by construction (`kd = 2√kp`). This is not the per-mode split
+ADR-020 rejects — raw and compensated still share one gain set *within* a
+domain, which is what makes the comparison honest. Joint and task were never
+claimed to share one.
+
+Each domain is sized by its uncompensated steady-state error, which is what
+the demo has to show. Joint PD reduces to `e_ss = M(q)⁻¹g(q)/kp` in rad; task
+PD's end-effector sag scales as `1/kp` in m. Both were set for visible but
+bounded droop that does not rest on the joint limits, then checked against
+`t_s ≈ 5.83/√kp` for watchability.
+
+`VALIDATED_KP = 2500`, `VALIDATED_KD = 100` are retained as a single pair and
+recorded as the highest gains the system has been exercised at — not a
+computed stability bound. `test_closed_loop_response_is_bounded` drives the
+plant at them and asserts a decreasing Lyapunov function, convergence, and no
+joint-limit contact, so the claim is verified rather than asserted.
+
+Runtime gain tuning over gRPC was considered and deferred. Gains live on the
+controller instance, which `SetControlMode` and `SetTarget` both replace
+wholesale, so a `SetPDGains` RPC would first require gains to become
+simulator-level state surviving controller replacement — the failure mode
+ADR-024 just closed for targets.
+
+**Consequences:**
+- Lower task gains widen the null-space collapse in `TASK_PD_RAW`. The
+  terminal configuration is set by gravitational potential on the self-motion
+  manifold and carries no `kp` term, so no gain choice moves it; ADR-020's
+  deferred posture task is the only lever.
+- The TUI's jog increments (5 mm, 0.01 rad) were sized against the old fast
+  response. At these gains a legible commanded move is tens of keypresses.
+- `VALIDATED_*` and `DEFAULT_*` can drift apart silently. Only the former is
+  under test; the latter is a demo-observability choice with no assertion
+  behind it.

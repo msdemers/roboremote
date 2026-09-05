@@ -5,6 +5,20 @@ import numpy as np
 from typing import Protocol
 from sim.status import ControlMode
 
+DEFAULT_JOINT_KP = 324.0 # 1/s^2, omega_n = 18 rad/s, zeta = 1 -> ~0.3 s settle
+DEFAULT_JOINT_KD = 36.0 # 1/s, kd = 2*sqrt(kp)
+
+DEFAULT_TASK_KP = 1024.0 # 1/s^2, omega_n = 32 rad/s, zeta = 1 -> ~0.18 s settle
+DEFAULT_TASK_KD = 64.0 # 1/s, kd = 2*sqrt(kp)
+
+DEFAULT_LAM = 0.3 # Tikhonov regularizer
+DEFAULT_KN = 0.015 # null-space damping
+
+# these gains represent the highest gains the system has been developed and 
+# exercised at, not the computed, theoretical stability bound.
+VALIDATED_KP = 2500.0 # 1/s^2
+VALIDATED_KD = 100.0 # 1/s
+
 class Controller(Protocol):
     mode: ControlMode
     target: np.ndarray | pin.SE3 | None
@@ -19,7 +33,7 @@ class GravityCompensationController:
 
 class JointPdController:
     mode = ControlMode.JOINT_PD_COMPENSATED
-    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
+    def __init__(self, target: np.ndarray, kp=DEFAULT_JOINT_KP, kd=DEFAULT_JOINT_KD):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -29,7 +43,7 @@ class JointPdController:
 
 class JointRawPdController:
     mode = ControlMode.JOINT_PD_RAW
-    def __init__(self, target: np.ndarray, kp=2500.0, kd=100.0):
+    def __init__(self, target: np.ndarray, kp=DEFAULT_JOINT_KP, kd=DEFAULT_JOINT_KD):
         self.target = target
         self.kp, self.kd = kp, kd
     def compute(self, model: pin.Model, data: pin.Data, q: np.ndarray, v: np.ndarray) -> np.ndarray:
@@ -41,7 +55,7 @@ class JointRawPdController:
 
 class TaskRawPdController:
     mode = ControlMode.TASK_PD_RAW
-    def __init__(self, target: pin.SE3, kp=2500.0, kd=100.0, lam=0.3, kn=0.015):
+    def __init__(self, target: pin.SE3, kp=DEFAULT_TASK_KP, kd=DEFAULT_TASK_KD, lam=DEFAULT_LAM, kn=DEFAULT_KN):
         self.target = target
         self.kp, self.kd = kp, kd
         self.lam = lam
@@ -76,7 +90,7 @@ class TaskRawPdController:
 
 class TaskPdController:
     mode = ControlMode.TASK_PD_COMPENSATED
-    def __init__(self, target: pin.SE3, kp=2500.0, kd=100.0, lam=0.3, kn=0.015):
+    def __init__(self, target: pin.SE3, kp=DEFAULT_TASK_KP, kd=DEFAULT_TASK_KD, lam=DEFAULT_LAM, kn=DEFAULT_KN):
         self.target = target
         self.kp, self.kd = kp, kd
         self.lam = lam
