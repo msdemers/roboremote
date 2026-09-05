@@ -155,6 +155,11 @@
       world pose + spatial velocity, add/remove lifecycle (deferred per ADR-012)
 - [ ] V2: Design interactive 3D visualizer (Three.js, browser-based, tugging support)
 - [ ] V2: Evaluate AWS vs CoreWeave for GPU/Isaac work
+- [ ] V2: `SetPDGains` RPC for runtime gain tuning — requires gains to become
+      simulator-level state that survives controller replacement (ADR-025)
+- [ ] Physics: `domain_for` mis-mapping is untested — a mode landing in the
+      wrong domain passes silently; twin of the TUI `selectionDomain` gap
+      above (ADR-024)
 - [x] Survey quaternion conventions/ordering across spatial SDKs (MuJoCo, NVIDIA
       Isaac, Apple ARKit/RealityKit, Unity) to inform proto `CartesianPose` format.
       Resolved → ADR-011: scalar-last `{x, y, z, w}` (industry majority; matches
