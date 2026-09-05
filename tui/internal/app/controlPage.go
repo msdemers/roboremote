@@ -73,14 +73,14 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 			return m, submitControlMode(m.sim, mode)
 		}
 	case keyStr == "+" && m.controlPage.nSelectable > 0:
-		m.controlPage.jogCursor(1) // jog up one step
+		m.controlPage.jogCursor(1, time.Now()) // jog up one step
 		targetReq := m.controlPage.targetRequest()
 		if targetReq == nil {
 			return m, nil
 		}
 		return m, submitControlTarget(m.sim, targetReq)
 	case keyStr == "-" && m.controlPage.nSelectable > 0:
-		m.controlPage.jogCursor(-1) // jog down one step
+		m.controlPage.jogCursor(-1, time.Now()) // jog down one step
 		targetReq := m.controlPage.targetRequest()
 		if targetReq == nil {
 			return m, nil
@@ -356,7 +356,7 @@ func (m model) renderCompactSnapshot() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, dofWidget, "   ", eeWidget)
 }
 
-func (cp *controlPage) jogCursor(steps int) {
+func (cp *controlPage) jogCursor(steps int, now time.Time) {
 	if cp.selected < 0 || cp.selected >= len(cp.targetCursor) {
 		return
 	}
@@ -373,7 +373,7 @@ func (cp *controlPage) jogCursor(steps int) {
 
 	cp.targetCursor[cp.selected] += float64(steps) * jogStep
 	cp.touched[cp.selected] = true
-	cp.lastJogTime = time.Now()
+	cp.lastJogTime = now
 }
 
 func (cp controlPage) targetRequest() *armv1.SetTargetRequest {

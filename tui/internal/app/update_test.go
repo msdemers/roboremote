@@ -661,9 +661,8 @@ func TestControlPage_JogCursor(t *testing.T) {
 			got.targetCursor = slices.Clone(tc.seed.targetCursor)
 			got.touched = slices.Clone(tc.seed.touched)
 
-			before := time.Now()
-			got.jogCursor(tc.jogSteps)
-			after := time.Now()
+			now := time.Now()
+			got.jogCursor(tc.jogSteps, now)
 
 			targetCursorsEqual := slices.EqualFunc(got.targetCursor, tc.wantTargetCursor, func(a, b float64) bool {
 				return math.Abs(a-b) < 1e-9
@@ -685,11 +684,8 @@ func TestControlPage_JogCursor(t *testing.T) {
 			}
 
 			if tc.wantNewLastJogTime {
-				if got.lastJogTime.Before(before) {
-					t.Errorf("lastJogTime = %v, want after %v", got.lastJogTime, before)
-				}
-				if got.lastJogTime.After(after) {
-					t.Errorf("lastJogTime = %v, want before %v", got.lastJogTime, after)
+				if !got.lastJogTime.Equal(now) {
+					t.Errorf("lastJogTime = %v, want after %v", got.lastJogTime, now)
 				}
 			} else {
 				if !got.lastJogTime.Equal(tc.seed.lastJogTime) {
