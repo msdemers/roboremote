@@ -140,6 +140,7 @@
       SetControlMode, so the rejection path can't rot
 - [ ] TUI: absent/short `joint_target` or `cartesian_target` renders an in-pane
       diagnostic but is not validated — decide whether it is a protocol violation
+- [ ] TUI: `targetRequest` panics on an empty `targetCursor` in `DomainTask`
 - [ ] TUI: `selectionDomain` exhaustiveness test — every ControlMode to its
       expected domain, count-checked; assert highest mode <= 9 (single keystroke)
 - [x] Sidecar: gripper DOF free-spins (observed ~243 rad/s, q ~131k rad) — two

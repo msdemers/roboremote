@@ -29,6 +29,10 @@ var (
 const (
 	jogStepRadians = 0.01
 	jogStepMeters  = 0.005
+	jogRampAlpha   = 0.618
+	jogRampTimeout = time.Millisecond * 150
+	jogBaseScale   = 1.0
+	jogMaxScale    = 10.0
 )
 
 type controlPage struct {
@@ -38,6 +42,9 @@ type controlPage struct {
 	targetCursor    []float64
 	touched         []bool
 	lastJogTime     time.Time
+	lastJogDir      int
+	lastJogSelected int
+	jogScale        float64
 }
 
 type controlDomain int
@@ -73,14 +80,14 @@ func (m model) updateControlPage(msg tea.KeyPressMsg) (model, tea.Cmd) {
 			return m, submitControlMode(m.sim, mode)
 		}
 	case keyStr == "+" && m.controlPage.nSelectable > 0:
-		m.controlPage.jogCursor(1) // jog up one step
+		m.controlPage.jogCursor(1, time.Now()) // jog up one step
 		targetReq := m.controlPage.targetRequest()
 		if targetReq == nil {
 			return m, nil
 		}
 		return m, submitControlTarget(m.sim, targetReq)
 	case keyStr == "-" && m.controlPage.nSelectable > 0:
-		m.controlPage.jogCursor(-1) // jog down one step
+		m.controlPage.jogCursor(-1, time.Now()) // jog down one step
 		targetReq := m.controlPage.targetRequest()
 		if targetReq == nil {
 			return m, nil
@@ -356,9 +363,13 @@ func (m model) renderCompactSnapshot() string {
 	return lipgloss.JoinHorizontal(lipgloss.Top, dofWidget, "   ", eeWidget)
 }
 
-func (cp *controlPage) jogCursor(steps int) {
+func (cp *controlPage) jogCursor(steps int, now time.Time) {
 	if cp.selected < 0 || cp.selected >= len(cp.targetCursor) {
 		return
+	}
+
+	if cp.jogScale < jogBaseScale {
+		cp.jogScale = jogBaseScale
 	}
 
 	var jogStep float64
@@ -371,9 +382,20 @@ func (cp *controlPage) jogCursor(steps int) {
 		jogStep = jogStepRadians
 	}
 
-	cp.targetCursor[cp.selected] += float64(steps) * jogStep
+	if now.Sub(cp.lastJogTime) > jogRampTimeout || steps*cp.lastJogDir < 0 || cp.selected != cp.lastJogSelected {
+		cp.jogScale = jogBaseScale
+	} else {
+		cp.jogScale = min(cp.jogScale*(1.0+jogRampAlpha), jogMaxScale)
+	}
+
+	cp.targetCursor[cp.selected] += float64(steps) * jogStep * cp.jogScale
 	cp.touched[cp.selected] = true
-	cp.lastJogTime = time.Now()
+	cp.lastJogTime = now
+	cp.lastJogDir = 1
+	if steps < 0 {
+		cp.lastJogDir = -1
+	}
+	cp.lastJogSelected = cp.selected
 }
 
 func (cp controlPage) targetRequest() *armv1.SetTargetRequest {
