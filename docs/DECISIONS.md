@@ -699,7 +699,8 @@ The arm also has genuine 2-DOF redundancy for a 3-D task.
 
 ## ADR-021: TUI Interaction Architecture — Paged Layout, Jog Control, Command Pump
 
-**Status:** Accepted; amended 2026-08-05 (modal confirm surface, key ownership)
+**Status:** Accepted; amended 2026-08-05 (modal confirm surface, key ownership);
+amended 2026-09-05 (jog step ramping)
 
 **Context:**
 Phase 5's remaining scope turns the TUI from passive monitor into command
@@ -743,6 +744,10 @@ over one gRPC conn.
   `SetTargetRequest` has no partial form. It resyncs to the echoed
   `active_target` whenever jogging is idle, which is also how it initializes:
   honest convergence to sim truth, adopts other writers' targets.
+- **Jog step ramps on rapid repeat** (amended): a dimensionless `jogScale`
+  grows ×1.618 per press inside `jogRampTimeout`, capped at `jogMaxScale`,
+  resetting on timeout, direction reversal, or selection change. ADR-025's
+  slower gains left a legible move tens of presses away at the fixed step.
 - **Mode keys immediate, arm-moving keys confirmed:** number keys switch mode
   with no confirm — ADR-013's bumpless transfer makes switching always safe,
   and a dialog would re-litigate that server-side guarantee. Active-mode
@@ -781,6 +786,11 @@ over one gRPC conn.
   explicit throttle needed.
 - Three text surfaces with distinct ownership: footer = global hints + command
   status, page hint row = that page's keys, overlay = confirms.
+- Ramp rate under a held key follows the terminal's auto-repeat settings, so
+  hold-to-jog is not reproducible across machines; deliberate rapid pressing
+  is. No surface shows the current scale.
+- A domain change resets the ramp only because it zeroes `lastJogTime`, which
+  the timeout branch then reads as stale. Implicit coupling, pinned by test.
 
 ---
 
