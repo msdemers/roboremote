@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	armv1 "github.com/msdemers/roboremote/proto/gen/go/roboremote/arm/v1"
 )
 
 func TestUpdateControlPage_Selection(t *testing.T) {
@@ -178,6 +179,38 @@ func TestUpdateControlPage_ModeKeys(t *testing.T) {
 		if got.controlPage.selected != tc.wantSelected {
 			t.Errorf("selected = %v, wanted %v", got.controlPage.selected, tc.wantSelected)
 		}
+	}
+}
+
+func TestUpdateControlPage_DomainChangeResetsJogScale(t *testing.T) {
+	desc := &armv1.ModelDescriptor{Nq: 3, Nv: 3}
+	state := &armv1.ArmState{
+		ActiveMode: armv1.ControlMode_CONTROL_MODE_JOINT_PD_COMPENSATED,
+		Q:          &armv1.Coordinates{Q: make([]float64, 3)},
+		V:          &armv1.Velocities{V: make([]float64, 3)},
+		Tau:        &armv1.Actuation{Tau: make([]float64, 3)},
+		ActiveTarget: &armv1.ArmState_JointTarget{
+			JointTarget: &armv1.Coordinates{Q: make([]float64, 3)},
+		},
+	}
+
+	seed := model{
+		lifecycle:  stateStreaming,
+		activePage: pageControl,
+		controlPage: controlPage{
+			nSelectable: 3, selected: 0, selectionDomain: DomainTask, jogScale: (1 + jogRampAlpha),
+		},
+		descriptor: desc,
+	}
+
+	next, _ := seed.Update(armStateMsg{armState: state})
+	next2, _ := next.Update(tea.KeyPressMsg{Text: "+"})
+	got, ok := next2.(model)
+	if !ok {
+		t.Fatalf("Update() = %T, want model", next2)
+	}
+	if got.controlPage.jogScale != jogBaseScale {
+		t.Errorf("jogScale = %v, want %v", got.controlPage.jogScale, jogBaseScale)
 	}
 }
 
@@ -427,6 +460,169 @@ func TestControlPage_JogCursor(t *testing.T) {
 				if !got.lastJogTime.Equal(tc.seed.lastJogTime) {
 					t.Errorf("lastJogTime = %v, want %v", got.lastJogTime, tc.seed.lastJogTime)
 				}
+			}
+		})
+	}
+}
+
+func TestControlPage_JogRamp(t *testing.T) {
+	tests := []struct {
+		name string
+		seed *controlPage
+		jogs []struct {
+			steps int
+			delay time.Duration
+		}
+		wantTargetCursor    []float64
+		wantLastJogDir      int
+		wantLastJogSelected int
+		wantJogScale        float64
+	}{
+		{
+			name: "first jog with scale 1.0",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 2, lastJogDir: 1, jogScale: 1.0,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: jogRampTimeout + time.Second},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, jogStepMeters},
+			wantLastJogDir:      1,
+			wantLastJogSelected: 2,
+			wantJogScale:        1.0,
+		},
+		{
+			name: "second jog arrives before timout ramps up",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 2, lastJogDir: 1, jogScale: 1.0,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: jogRampTimeout + time.Second},
+				{steps: 1, delay: time.Millisecond * 20},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, jogStepMeters * (1 + 1 + jogRampAlpha)},
+			wantLastJogDir:      1,
+			wantLastJogSelected: 2,
+			wantJogScale:        1.0 + jogRampAlpha,
+		},
+		{
+			name: "second jog arrives after timout resets scale",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 2, lastJogDir: 1, jogScale: 1.0,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: jogRampTimeout + time.Second},
+				{steps: 1, delay: jogRampTimeout + time.Second},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, jogStepMeters * 2},
+			wantLastJogDir:      1,
+			wantLastJogSelected: 2,
+			wantJogScale:        1.0,
+		},
+		{
+			name: "reverse jog resets scale",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 2, lastJogDir: 1, jogScale: 1.0,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: jogRampTimeout + time.Second},
+				{steps: -1, delay: time.Millisecond * 20},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, 0.0},
+			wantLastJogDir:      -1,
+			wantLastJogSelected: 2,
+			wantJogScale:        1.0,
+		},
+		{
+			name: "selection change resets scale",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 1, lastJogDir: 1, jogScale: 2.0,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: time.Millisecond * 20},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, jogStepMeters},
+			wantLastJogDir:      1,
+			wantLastJogSelected: 2,
+			wantJogScale:        1.0,
+		},
+		{
+			name: "consecutive jogs saturate at max",
+			seed: &controlPage{
+				nSelectable: 3, selected: 2, selectionDomain: DomainTask,
+				lastJogSelected: 2, lastJogDir: 1, jogScale: 0.95 * jogMaxScale,
+				targetCursor: make([]float64, 3), touched: make([]bool, 3),
+			},
+			jogs: []struct {
+				steps int
+				delay time.Duration
+			}{
+				{steps: 1, delay: time.Millisecond * 20},
+				{steps: 1, delay: time.Millisecond * 20},
+				{steps: 1, delay: time.Millisecond * 20},
+				{steps: 1, delay: time.Millisecond * 20},
+				{steps: 1, delay: time.Millisecond * 20},
+			},
+			wantTargetCursor:    []float64{0.0, 0.0, 5 * jogMaxScale * jogStepMeters},
+			wantLastJogDir:      1,
+			wantLastJogSelected: 2,
+			wantJogScale:        jogMaxScale,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := *tc.seed
+			got.targetCursor = slices.Clone(tc.seed.targetCursor)
+			got.touched = slices.Clone(tc.seed.touched)
+
+			base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+			got.lastJogTime = base
+			now := base
+			for _, jog := range tc.jogs {
+				now = now.Add(jog.delay)
+				got.jogCursor(jog.steps, now)
+			}
+
+			targetCursorsEqual := slices.EqualFunc(got.targetCursor, tc.wantTargetCursor, func(a, b float64) bool {
+				return math.Abs(a-b) < 1e-9
+			})
+			if !targetCursorsEqual {
+				t.Errorf("targetCursor = %v, want %v", got.targetCursor, tc.wantTargetCursor)
+			}
+			if got.lastJogDir != tc.wantLastJogDir {
+				t.Errorf("lastJogDir = %v, want %v", got.lastJogDir, tc.wantLastJogDir)
+			}
+			if got.lastJogSelected != tc.wantLastJogSelected {
+				t.Errorf("lastJogSelected = %v, want %v", got.lastJogSelected, tc.wantLastJogSelected)
+			}
+			if math.Abs(got.jogScale-tc.wantJogScale) > 1e-9 {
+				t.Errorf("jogScale = %v, want %v", got.jogScale, tc.wantJogScale)
 			}
 		})
 	}

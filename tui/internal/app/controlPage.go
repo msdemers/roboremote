@@ -29,6 +29,10 @@ var (
 const (
 	jogStepRadians = 0.01
 	jogStepMeters  = 0.005
+	jogRampAlpha   = 0.618
+	jogRampTimeout = time.Millisecond * 150
+	jogBaseScale   = 1.0
+	jogMaxScale    = 10.0
 )
 
 type controlPage struct {
@@ -38,6 +42,9 @@ type controlPage struct {
 	targetCursor    []float64
 	touched         []bool
 	lastJogTime     time.Time
+	lastJogDir      int
+	lastJogSelected int
+	jogScale        float64
 }
 
 type controlDomain int
@@ -361,6 +368,10 @@ func (cp *controlPage) jogCursor(steps int, now time.Time) {
 		return
 	}
 
+	if cp.jogScale < jogBaseScale {
+		cp.jogScale = jogBaseScale
+	}
+
 	var jogStep float64
 	switch cp.selectionDomain {
 	case DomainNone:
@@ -371,9 +382,20 @@ func (cp *controlPage) jogCursor(steps int, now time.Time) {
 		jogStep = jogStepRadians
 	}
 
-	cp.targetCursor[cp.selected] += float64(steps) * jogStep
+	if now.Sub(cp.lastJogTime) > jogRampTimeout || steps*cp.lastJogDir < 0 || cp.selected != cp.lastJogSelected {
+		cp.jogScale = jogBaseScale
+	} else {
+		cp.jogScale = min(cp.jogScale*(1.0+jogRampAlpha), jogMaxScale)
+	}
+
+	cp.targetCursor[cp.selected] += float64(steps) * jogStep * cp.jogScale
 	cp.touched[cp.selected] = true
 	cp.lastJogTime = now
+	cp.lastJogDir = 1
+	if steps < 0 {
+		cp.lastJogDir = -1
+	}
+	cp.lastJogSelected = cp.selected
 }
 
 func (cp controlPage) targetRequest() *armv1.SetTargetRequest {
