@@ -9,15 +9,17 @@ from roboremote.arm.v1 import arm_pb2
 from roboremote.arm.v1 import arm_pb2_grpc as pb_grpc
 
 PHI = 0.5*(1 + 5**0.5) # golden ratio
-EE_MARKER_RADIUS = 0.003 # meters
+EE_MARKER_RADIUS = 0.005 # meters
+EE_MARKER_COLOR = (30, 160, 255)
 TARGET_CROSSHAIR_AXIS_LENGTH = (PHI**2)*EE_MARKER_RADIUS
 TARGET_CROSSHAIR_HOLLOW = PHI*EE_MARKER_RADIUS
 TARGET_CROSSHAIR_THICKNESS = 3 # in screen units
+TARGET_CROSSHAIR_COLOR = (255, 120, 20)
 
 CAMERA_UP = (0,0,1)
 CAMERA_FOV = 35*np.pi/180 # radians
-CAMERA_POSITION = (0.6, 0.6, 0.7)
-CAMERA_LOOKAT = (0.3, 0.0, 0.2)
+CAMERA_LOOKAT   = (0.25, 0.02, 0.20)
+CAMERA_POSITION = (0.569, 0.339, 0.364)   # az 45°, el 20°, d 0.48
 
 def run_client():
     parser = argparse.ArgumentParser()
@@ -132,7 +134,7 @@ def add_end_effector_marker(scene_server, radius):
     h_marker = scene_server.scene.add_icosphere(
         name="end_effector_position",
         radius=radius,
-        color=(0.0, 1.0, 0.0),
+        color=EE_MARKER_COLOR,
         subdivisions=3,
         scale=1.0,
         wireframe=False,
@@ -160,7 +162,7 @@ def add_target_crosshair(scene_server, axis_length, hollow_radius, thickness):
     h_crosshair = scene_server.scene.add_line_segments(
         name="target_crosshair",
         points=points,
-        colors=(1.0, 0.0, 0.0),
+        colors=TARGET_CROSSHAIR_COLOR,
         thickness=thickness,
         thickness_units="screen",
         position=(0, 0, 0),

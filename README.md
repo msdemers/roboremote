@@ -3,7 +3,7 @@
 
 Command an interactive, realtime physics simulation of an SO-101 robotic manipulator. Provide a Cartesian target to track a position with operational-space control or provide joint angles to track a specific robot pose. Toggle nonlinear compensation off to watch tracking error open up as gravity and inertial terms go uncancelled. Attach multiple clients, including the visualizer, to watch your robot whether it's simulated on your local machine or a distant, headless box.
 
-![3D visualization and TUI-based control of realtime robotic simulation.](docs/media/demo.gif)
+![3D visualization and TUI-based control of realtime robotic simulation.](docs/media/demo_24_96.gif)
 
 ## Quickstart
 
@@ -78,14 +78,14 @@ docker compose down
 
 *Raw modes apply pure proportional-derivative control torques. Compensated modes add computed torque for mitigating biases due to gravity and inertial nonlinearities.*
 
-Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select, `-`/`+` to adjust, `r` to reset to default pose
+Interaction: `tab` between pages, `[1-5]` select control mode, `j`/`k` to select, `-`/`+` to adjust (hold for fast-jog), `r` to reset to default pose
 
 > [!NOTE]
 > The TUI footer always shows the available keys for the current page/view.
 
-![Arm holding position with compensation on, drooping when disabled, then recovering when enabled again.](docs/media/compensation.gif)
+![Arm holding position with compensation on, drooping when disabled, then recovering when enabled again.](docs/media/compensation_24_192.gif)
 
-*Same target throughout. Compensation off at t = xx.x s — tracking error opens as gravity and inertial terms go uncancelled — back on at t = yy.y s.*
+*Task-space control of a Cartesian target, starting with compensation on. Compensation off at `t = 58.20 s` leaving the gravity and inertial terms uncancelled. The end effector sags 2 cm in the vertical within 1 second and holds there until compensation returns, when tracking recovers in ~0.2 s. The elbow stays drooped because position control constrains the end effector, not the posture. The reset at the end restores the elbow-up posture.*
 
 ## How It Works
 <!-- Diagram Note: The theme is pinned because GitHub's mermaid renderer ignores the user's system color scheme (light vs dark mode); don't "fix" it until github fixes their end. -->

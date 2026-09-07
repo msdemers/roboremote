@@ -123,10 +123,11 @@
 
 ## Phase 7: Integration and Polish
 - [x] Full stack smoke test; fixed Dockerfile COPY layering and a stream double-close panic
-- [ ] Write README.md (purpose, quickstart, architecture diagram)
+- [x] Write README.md (purpose, quickstart, architecture diagram)
 - [x] Write TUI unit tests — table-driven over `internal/app` update paths
-- [ ] Record demo (gif or video)
-- [ ] Commit: "docs: readme, architecture diagram, and demo"
+- [x] Record demo (gif or video) — hero + compensation gifs, 880 px / 24 fps,
+      stacked viz-over-TUI; viz camera and marker defaults retuned to suit
+- [x] Commit: "docs: readme, architecture diagram, and demo"
 
 ## Phase 8: V2 Deployment (DevOps capstone or fast follow)
 - [ ] Write fly.toml for server and physics apps
