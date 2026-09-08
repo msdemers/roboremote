@@ -1,0 +1,8 @@
+roboremote
+Copyright 2026 Matthew S DeMers
+
+This product includes model description files and geometry assets of the 
+SO-101 manipulator, developed by TheRobotStudio.
+Licensed under the Apache License, Version 2.0.
+Source: https://github.com/TheRobotStudio/SO-ARM100/
+See models/so101/README.md for provenance details.

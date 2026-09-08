@@ -1,7 +1,7 @@
 # roboremote
 **A torque-controlled simulation of a robotic arm you can command over the network**
 
-Command an interactive, realtime physics simulation of an SO-101 robotic manipulator. Provide a Cartesian target to track a position with operational-space control or provide joint angles to track a specific robot pose. Toggle nonlinear compensation off to watch tracking error open up as gravity and inertial terms go uncancelled. Attach multiple clients, including the visualizer, to watch your robot whether it's simulated on your local machine or a distant, headless box.
+Command an interactive, realtime physics simulation of an [SO-101 robotic manipulator](https://github.com/TheRobotStudio/SO-ARM100/). Provide a Cartesian target to track a position with operational-space control or provide joint angles to track a specific robot pose. Toggle nonlinear compensation off to watch tracking error open up as gravity and inertial terms go uncancelled. Attach multiple clients, including the visualizer, to watch your robot whether it's simulated on your local machine or a distant, headless box.
 
 ![3D visualization and TUI-based control of realtime robotic simulation.](docs/media/demo_24_96.gif)
 
@@ -323,6 +323,12 @@ DRIFTED - generated proto changed and needs commit
 ```bash
 git add proto/gen && git commit -m "chore: keep repo gRPC stubs current"
 ```
+
+## License
+
+roboremote is licensed under the [Apache License, Version 2.0](LICENSE).
+
+Vendored SO-101 model assets in `models/so101/` are copyright TheRobotStudio, distributed under the same license. See [NOTICE](NOTICE) and [models/so101/README.md](models/so101/README.md)
 
 ## Why This Exists
 
