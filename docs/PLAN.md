@@ -150,6 +150,8 @@
   - [x] Uniform viscous damping in the plant per ADR-023
 - [ ] Gripper: decouple from articular EE control; add open/close commands to
       the proto contract (no ADR yet — design undecided)
+- [ ] Models: vet vendored `so101_new_calib_camera.urdf` (unused) against the
+      controllers and PD gains; decide whether it supersedes the canonical URDF
 - [ ] Sidecar: implicit damping term per ADR-023 deferral — removes the
       `d·dt/M < 2` bound and would admit physical STS3215 values
 - [ ] Sidecar: finish lint/typecheck setup — ruff + pyright config (pyright
