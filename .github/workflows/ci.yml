@@ -1,0 +1,33 @@
+name: CI
+
+permissions:
+    contents: read
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    run-go-tests:
+        name: Go tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+            - uses: actions/setup-go@v7
+              with:
+                go-version-file: go.work
+                cache: true
+                cache-dependency-path: |
+                  **/go.sum
+            - name: Test roboserver
+              working-directory: ./server
+              run: go test ./...
+            - name: Test robotui
+              working-directory: ./tui
+              run: go test ./...
