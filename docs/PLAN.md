@@ -132,9 +132,18 @@
 ## Phase 8: V2 Deployment (DevOps capstone or fast follow)
 - [ ] Write fly.toml for server and physics apps
 - [ ] Configure fly secrets for environment variables
-- [ ] Set up GitHub Actions CI/CD
+- [x] Set up GitHub Actions CI — `Go tests` + `Physics tests`, required by the
+      `protect main` ruleset
+- [ ] Extend CI to CD — build/push images, deploy on tag
 - [ ] Deploy to Fly.io, verify private network gRPC
 - [ ] Update README with public demo URL
+
+## Phase 9: Public Release (Complete 2026-09-12)
+- [x] Apache-2.0 `LICENSE` + `NOTICE`; SO-101 provenance in `models/so101/README.md`
+- [x] Prune unused MJCF; vendor the camera URDF and its meshes
+- [x] Repo metadata — description, topics; `protect main` ruleset
+- [x] Flip public; tag and release v1.0.0
+- [ ] README badges — CI, license, Go version (branch `docs/readme-badges`)
 
 ## Open TODOs
 - [ ] Sidecar: pytest asserting INVALID_ARGUMENT for an UNSPECIFIED
